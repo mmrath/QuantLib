@@ -54,13 +54,28 @@ namespace QuantLib {
         MakeOIS& withEffectiveDate(const Date&);
         MakeOIS& withTerminationDate(const Date&);
         MakeOIS& withRule(DateGeneration::Rule r);
+        MakeOIS& withFixedLegRule(DateGeneration::Rule r);
+        MakeOIS& withOvernightLegRule(DateGeneration::Rule r);
 
         MakeOIS& withPaymentFrequency(Frequency f);
+        MakeOIS& withFixedLegPaymentFrequency(Frequency f);
+        MakeOIS& withOvernightLegPaymentFrequency(Frequency f);
         MakeOIS& withPaymentAdjustment(BusinessDayConvention convention);
-        MakeOIS& withPaymentLag(Natural lag);
+        MakeOIS& withPaymentLag(Integer lag);
         MakeOIS& withPaymentCalendar(const Calendar& cal);
+        MakeOIS& withCalendar(const Calendar& cal);
+        MakeOIS& withFixedLegCalendar(const Calendar& cal);
+        MakeOIS& withOvernightLegCalendar(const Calendar& cal);
 
+        MakeOIS& withConvention(BusinessDayConvention bdc);
+        MakeOIS& withFixedLegConvention(BusinessDayConvention bdc);
+        MakeOIS& withOvernightLegConvention(BusinessDayConvention bdc);
+        MakeOIS& withTerminationDateConvention(BusinessDayConvention bdc);
+        MakeOIS& withFixedLegTerminationDateConvention(BusinessDayConvention bdc);
+        MakeOIS& withOvernightLegTerminationDateConvention(BusinessDayConvention bdc);
         MakeOIS& withEndOfMonth(bool flag = true);
+        MakeOIS& withFixedLegEndOfMonth(bool flag = true);
+        MakeOIS& withOvernightLegEndOfMonth(bool flag = true);
 
         MakeOIS& withFixedLegDayCount(const DayCounter& dc);
 
@@ -73,6 +88,10 @@ namespace QuantLib {
 
         MakeOIS& withAveragingMethod(RateAveraging::Type averagingMethod);
 
+        MakeOIS& withLookbackDays(Natural lookbackDays);
+        MakeOIS& withLockoutDays(Natural lockoutDays);
+        MakeOIS& withObservationShift(bool applyObservationShift = true);
+
         MakeOIS& withPricingEngine(
                               const ext::shared_ptr<PricingEngine>& engine);
       private:
@@ -81,28 +100,37 @@ namespace QuantLib {
         Rate fixedRate_;
         Period forwardStart_;
 
-        Natural settlementDays_;
+        Natural settlementDays_ = 2;
         Date effectiveDate_, terminationDate_;
-        Calendar calendar_;
+        Calendar fixedCalendar_, overnightCalendar_;
 
-        Frequency paymentFrequency_;
+        Frequency fixedPaymentFrequency_ = Annual;
+        Frequency overnightPaymentFrequency_ = Annual;
         Calendar paymentCalendar_;
-        BusinessDayConvention paymentAdjustment_;
-        Natural paymentLag_;
+        BusinessDayConvention paymentAdjustment_ = Following;
+        Integer paymentLag_ = 0;
 
-        DateGeneration::Rule rule_;
-        bool endOfMonth_, isDefaultEOM_;
+        BusinessDayConvention fixedConvention_ = ModifiedFollowing,
+                              fixedTerminationDateConvention_ = ModifiedFollowing,
+                              overnightConvention_ = ModifiedFollowing,
+                              overnightTerminationDateConvention_ = ModifiedFollowing;
+        DateGeneration::Rule fixedRule_ = DateGeneration::Backward;
+        DateGeneration::Rule overnightRule_ = DateGeneration::Backward;
+        bool fixedEndOfMonth_ = false, overnightEndOfMonth_ = false, isDefaultEOM_ = true;
 
-        Swap::Type type_;
-        Real nominal_;
+        Swap::Type type_ = Swap::Payer;
+        Real nominal_ = 1.0;
 
-        Spread overnightSpread_;
+        Spread overnightSpread_ = 0.0;
         DayCounter fixedDayCount_;
 
         ext::shared_ptr<PricingEngine> engine_;
 
-        bool telescopicValueDates_;
-        RateAveraging::Type averagingMethod_;
+        bool telescopicValueDates_ = false;
+        RateAveraging::Type averagingMethod_ = RateAveraging::Compound;
+        Natural lookbackDays_ = Null<Natural>();
+        Natural lockoutDays_ = 0;
+        bool applyObservationShift_ = false;
     };
 
 }

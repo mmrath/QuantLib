@@ -173,20 +173,20 @@ namespace QuantLib {
                                                       rightCond,
                                                       rightConditionValue));
             impl_->update();
-            coeffs_ =
-                ext::dynamic_pointer_cast<detail::CoefficientHolder>(impl_);
         }
         const std::vector<Real>& primitiveConstants() const {
-            return coeffs_->primitiveConst_;
+            return coeffs().primitiveConst_;
         }
-        const std::vector<Real>& aCoefficients() const { return coeffs_->a_; }
-        const std::vector<Real>& bCoefficients() const { return coeffs_->b_; }
-        const std::vector<Real>& cCoefficients() const { return coeffs_->c_; }
+        const std::vector<Real>& aCoefficients() const { return coeffs().a_; }
+        const std::vector<Real>& bCoefficients() const { return coeffs().b_; }
+        const std::vector<Real>& cCoefficients() const { return coeffs().c_; }
         const std::vector<bool>& monotonicityAdjustments() const {
-            return coeffs_->monotonicityAdjustments_;
+            return coeffs().monotonicityAdjustments_;
         }
       private:
-        ext::shared_ptr<detail::CoefficientHolder> coeffs_;
+        const detail::CoefficientHolder& coeffs() const {
+            return *dynamic_cast<detail::CoefficientHolder*>(impl_.get());
+        }
     };
 
 
@@ -360,8 +360,8 @@ namespace QuantLib {
     namespace detail {
 
         template <class I1, class I2>
-        class CubicInterpolationImpl : public CoefficientHolder,
-                                    public Interpolation::templateImpl<I1,I2> {
+        class CubicInterpolationImpl final : public CoefficientHolder,
+                                             public Interpolation::templateImpl<I1,I2> {
           public:
             CubicInterpolationImpl(const I1& xBegin,
                                    const I1& xEnd,
@@ -787,7 +787,7 @@ namespace QuantLib {
             mutable std::vector<Real> dx_, S_;
             mutable TridiagonalOperator L_;
 
-            inline Real cubicInterpolatingPolynomialDerivative(
+            Real cubicInterpolatingPolynomialDerivative(
                                Real a, Real b, Real c, Real d,
                                Real u, Real v, Real w, Real z, Real x) const {
                 return (-((((a-c)*(b-c)*(c-x)*z-(a-d)*(b-d)*(d-x)*w)*(a-x+b-x)

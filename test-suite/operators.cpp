@@ -18,13 +18,13 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "operators.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/math/distributions/normaldistribution.hpp>
 #include <ql/methods/finitedifferences/dzero.hpp>
 #include <ql/methods/finitedifferences/dplusdminus.hpp>
 #include <ql/methods/finitedifferences/bsmoperator.hpp>
-#include <ql/methods/finitedifferences/bsmtermoperator.hpp>
+#include <ql/methods/finitedifferences/pdebsm.hpp>
 #include <ql/time/daycounters/actual360.hpp>
 #include <ql/quotes/simplequote.hpp>
 #include <ql/utilities/dataformatters.hpp>
@@ -32,8 +32,11 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
 
-void OperatorTest::testTridiagonal() {
+BOOST_AUTO_TEST_SUITE(OperatorTests)
+
+BOOST_AUTO_TEST_CASE(testTridiagonal) {
 
     BOOST_TEST_MESSAGE("Testing tridiagonal operator...");
 
@@ -115,7 +118,7 @@ void OperatorTest::testTridiagonal() {
                    "\n                  tolerance: " << tolerance);
 }
 
-void OperatorTest::testConsistency() {
+BOOST_AUTO_TEST_CASE(testConsistency) {
 
     BOOST_TEST_MESSAGE("Testing differential operators...");
 
@@ -127,7 +130,6 @@ void OperatorTest::testConsistency() {
     Real xMin = average - 4*sigma,
          xMax = average + 4*sigma;
     Size N = 10001;
-    // FLOATING_POINT_EXCEPTION
     Real h = (xMax-xMin)/(N-1);
 
     Array x(N), y(N), yi(N), yd(N), temp(N), diff(N);
@@ -146,9 +148,8 @@ void OperatorTest::testConsistency() {
 
     // check that the derivative of cum is Gaussian
     temp = D.applyTo(yi);
-    std::transform(y.begin(),y.end(),temp.begin(),diff.begin(),
-                   std::minus<Real>());
-    Real e = norm(diff.begin(),diff.end(),h);
+    std::transform(y.begin(), y.end(), temp.begin(), diff.begin(), std::minus<>());
+    Real e = norm(diff.begin(), diff.end(), h);
     if (e > 1.0e-6) {
         BOOST_FAIL("norm of 1st derivative of cum minus Gaussian: " << e
                    << "\ntolerance exceeded");
@@ -156,17 +157,18 @@ void OperatorTest::testConsistency() {
 
     // check that the second derivative of cum is normal.derivative
     temp = D2.applyTo(yi);
-    std::transform(yd.begin(),yd.end(),temp.begin(),diff.begin(),
-                   std::minus<Real>());
-    e = norm(diff.begin(),diff.end(),h);
+    std::transform(yd.begin(), yd.end(), temp.begin(), diff.begin(), std::minus<>());
+    e = norm(diff.begin(), diff.end(), h);
     if (e > 1.0e-4) {
         BOOST_FAIL("norm of 2nd derivative of cum minus Gaussian derivative: "
                    << e << "\ntolerance exceeded");
     }
 }
 
-void OperatorTest::testBSMOperatorConsistency() {
+BOOST_AUTO_TEST_CASE(testBSMOperatorConsistency) {
     BOOST_TEST_MESSAGE("Testing consistency of BSM operators...");
+
+    QL_DEPRECATED_DISABLE_WARNING
 
     Array grid(10);
     Real price = 20.0;
@@ -174,7 +176,6 @@ void OperatorTest::testBSMOperatorConsistency() {
     Size i;
     for (i = 0; i < grid.size(); i++) {
         grid[i] = price;
-        // FLOATING_POINT_EXCEPTION
         price *= factor;
     }
     Real dx = std::log(factor);
@@ -199,7 +200,8 @@ void OperatorTest::testBSMOperatorConsistency() {
                                        Handle<YieldTermStructure>(qTS),
                                        Handle<YieldTermStructure>(rTS),
                                        Handle<BlackVolTermStructure>(volTS)));
-    BSMTermOperator op2(grid, stochProcess, residualTime);
+
+    PdeOperator<PdeBSM> op2(grid, stochProcess, residualTime);
 
     Real tolerance = 1.0e-6;
 
@@ -223,16 +225,11 @@ void OperatorTest::testBSMOperatorConsistency() {
                        << op2.upperDiagonal()[i]);
         }
     }
+
+    QL_DEPRECATED_ENABLE_WARNING
+
 }
 
+BOOST_AUTO_TEST_SUITE_END()
 
-test_suite* OperatorTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Operator tests");
-    suite->add(QUANTLIB_TEST_CASE(&OperatorTest::testTridiagonal));
-    // FLOATING_POINT_EXCEPTION
-    suite->add(QUANTLIB_TEST_CASE(&OperatorTest::testConsistency));
-    // FLOATING_POINT_EXCEPTION
-    suite->add(QUANTLIB_TEST_CASE(&OperatorTest::testBSMOperatorConsistency));
-    return suite;
-}
-
+BOOST_AUTO_TEST_SUITE_END()

@@ -28,22 +28,38 @@
 
 namespace QuantLib {
 
-    Disposable<Array> CenteredGrid(Real center, Real dx, Size steps);
-    Disposable<Array> BoundedGrid(Real xMin, Real xMax, Size steps);
-    Disposable<Array> BoundedLogGrid(Real xMin, Real xMax, Size steps);
+    /*! \deprecated Part of the old FD framework; copy this function
+                    in your codebase if needed.
+                    Deprecated in version 1.37.
+    */
+    [[deprecated("Part of the old FD framework; copy this function in your codebase if needed")]]
+    Array CenteredGrid(Real center, Real dx, Size steps);
+
+    /*! \deprecated Part of the old FD framework; copy this function
+                    in your codebase if needed.
+                    Deprecated in version 1.37.
+    */
+    [[deprecated("Part of the old FD framework; copy this function in your codebase if needed")]]
+    Array BoundedGrid(Real xMin, Real xMax, Size steps);
+
+    /*! \deprecated Part of the old FD framework; copy this function
+                    in your codebase if needed.
+                    Deprecated in version 1.37.
+    */
+    [[deprecated("Part of the old FD framework; copy this function in your codebase if needed")]]
+    Array BoundedLogGrid(Real xMin, Real xMax, Size steps);
+
 
     // inline definitions
 
-    inline Disposable<Array> CenteredGrid(Real center, Real dx,
-                                          Size steps) {
+    inline Array CenteredGrid(Real center, Real dx, Size steps) {
         Array result(steps+1);
         for (Size i=0; i<steps+1; i++)
             result[i] = center + (i - steps/2.0)*dx;
         return result;
     }
 
-    inline Disposable<Array> BoundedGrid(Real xMin, Real xMax,
-                                         Size steps) {
+    inline Array BoundedGrid(Real xMin, Real xMax, Size steps) {
         Array result(steps+1);
         Real x=xMin, dx=(xMax-xMin)/steps;
         for (Size i=0; i<steps+1; i++, x+=dx)
@@ -51,8 +67,7 @@ namespace QuantLib {
         return result;
     }
 
-    inline Disposable<Array> BoundedLogGrid(Real xMin, Real xMax,
-                                            Size steps) {
+    inline Array BoundedLogGrid(Real xMin, Real xMax, Size steps) {
         Array result(steps+1);
         Real gridLogSpacing = (std::log(xMax) - std::log(xMin)) / 
             (steps);

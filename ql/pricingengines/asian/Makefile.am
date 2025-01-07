@@ -7,25 +7,28 @@ this_include_HEADERS = \
 	analytic_cont_geom_av_price.hpp \
 	analytic_discr_geom_av_price.hpp \
 	analytic_discr_geom_av_strike.hpp \
+	choiasianengine.hpp \
 	fdblackscholesasianengine.hpp \
 	mc_discr_arith_av_price.hpp \
 	mc_discr_arith_av_price_heston.hpp \
 	mc_discr_arith_av_strike.hpp \
 	mc_discr_geom_av_price.hpp \
 	mc_discr_geom_av_price_heston.hpp \
-	mcdiscreteasianengine.hpp \
-	mcdiscreteasianenginebase.hpp
+	mcdiscreteasianenginebase.hpp \
+	turnbullwakemanasianengine.hpp
 
 cpp_files = \
 	analytic_cont_geom_av_price.cpp \
 	analytic_discr_geom_av_price.cpp \
 	analytic_discr_geom_av_strike.cpp \
+	choiasianengine.cpp \
 	fdblackscholesasianengine.cpp \
 	mc_discr_arith_av_price.cpp \
 	mc_discr_arith_av_price_heston.cpp \
 	mc_discr_arith_av_strike.cpp \
 	mc_discr_geom_av_price.cpp \
-	mc_discr_geom_av_price_heston.cpp
+	mc_discr_geom_av_price_heston.cpp \
+	turnbullwakemanasianengine.cpp
 
 if UNITY_BUILD
 

@@ -61,13 +61,13 @@ namespace QuantLib {
         Real invCDF(const Date& d, Real q) const;
 
         // collocation points of the Ornstein-Uhlenbeck process
-        Disposable<Array> collocationPointsX(const Date& d) const;
+        Array collocationPointsX(const Date& d) const;
 
         // collocation points for the underlying Y
-        Disposable<Array> collocationPointsY(const Date& d) const;
+        Array collocationPointsY(const Date& d) const;
 
         // CLV mapping function
-        ext::function<Real(Time, Real)> g() const;
+        std::function<Real(Time, Real)> g() const;
 
       protected:
         void performCalculations() const override;
@@ -111,7 +111,7 @@ namespace QuantLib {
         const ext::shared_ptr<GBSMRNDCalculator> rndCalculator_;
 
         std::vector<Time> maturityTimes_;
-        mutable ext::function<Real(Time, Real)> g_;
+        mutable std::function<Real(Time, Real)> g_;
     };
 }
 

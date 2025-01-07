@@ -17,7 +17,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "catbonds.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/types.hpp>
 #include <ql/experimental/catbonds/catbond.hpp>
@@ -48,18 +48,34 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-namespace catbonds_test {
-    std::pair<Date, Real> data[] = {std::pair<Date, Real>(Date(1, February, 2012), 100), std::pair<Date, Real>(Date(1, July, 2013), 150), std::pair<Date, Real>(Date(5, January, 2014), 50)};
-    ext::shared_ptr<std::vector<std::pair<Date, Real> > > sampleEvents(new std::vector<std::pair<Date, Real> >(data, data+3));
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
 
-    Date eventsStart(1, January, 2011);
-    Date eventsEnd(31, December, 2014);
-}
+BOOST_AUTO_TEST_SUITE(CatBondTests)
 
-void CatBondTest::testEventSetForWholeYears() {
+std::pair<Date, Real> data[] = {std::pair<Date, Real>(Date(1, February, 2012), 100), std::pair<Date, Real>(Date(1, July, 2013), 150), std::pair<Date, Real>(Date(5, January, 2014), 50)};
+ext::shared_ptr<std::vector<std::pair<Date, Real> > > sampleEvents(new std::vector<std::pair<Date, Real> >(data, data+3));
+
+Date eventsStart(1, January, 2011);
+Date eventsEnd(31, December, 2014);
+
+struct CommonVars {
+    // common data
+    Calendar calendar;
+    Date today;
+    Real faceAmount;
+
+    // setup
+    CommonVars() {
+        calendar = TARGET();
+        today = calendar.adjust(Date::todaysDate());
+        Settings::instance().evaluationDate() = today;
+        faceAmount = 1000000.0;
+    }
+};
+
+
+BOOST_AUTO_TEST_CASE(testEventSetForWholeYears) {
     BOOST_TEST_MESSAGE("Testing that catastrophe events are split correctly for periods of whole years...");
-
-    using namespace catbonds_test;
 
     EventSet catRisk(sampleEvents, eventsStart, eventsEnd);
     ext::shared_ptr<CatSimulation> simulation = catRisk.newSimulation(Date(1, January, 2015), Date(31, December, 2015));
@@ -89,12 +105,9 @@ void CatBondTest::testEventSetForWholeYears() {
     BOOST_REQUIRE(!simulation->nextPath(path));
 }
 
-
-void CatBondTest::testEventSetForIrregularPeriods() {
+BOOST_AUTO_TEST_CASE(testEventSetForIrregularPeriods) {
     BOOST_TEST_MESSAGE("Testing that catastrophe events are split correctly for irregular periods...");
 
-    using namespace catbonds_test;
-    
     EventSet catRisk(sampleEvents, eventsStart, eventsEnd);
     ext::shared_ptr<CatSimulation> simulation = catRisk.newSimulation(Date(2, January, 2015), Date(5, January, 2016));
 
@@ -115,11 +128,8 @@ void CatBondTest::testEventSetForIrregularPeriods() {
     BOOST_REQUIRE(!simulation->nextPath(path));
 }
 
-
-void CatBondTest::testEventSetForNoEvents () {
+BOOST_AUTO_TEST_CASE(testEventSetForNoEvents) {
     BOOST_TEST_MESSAGE("Testing that catastrophe events are split correctly when there are no simulated events...");
-
-    using namespace catbonds_test;
 
     ext::shared_ptr<std::vector<std::pair<Date, Real> > > emptyEvents(new std::vector<std::pair<Date, Real> >());
     EventSet catRisk(emptyEvents, eventsStart, eventsEnd);
@@ -138,7 +148,7 @@ void CatBondTest::testEventSetForNoEvents () {
     BOOST_REQUIRE(!simulation->nextPath(path));
 }
 
-void CatBondTest::testBetaRisk() {
+BOOST_AUTO_TEST_CASE(testBetaRisk) {
     BOOST_TEST_MESSAGE("Testing that beta risk gives correct terminal distribution...");
 
     const size_t PATHS = 1000000;
@@ -155,7 +165,8 @@ void CatBondTest::testBetaRisk() {
     
     for(size_t i=0; i<PATHS; ++i)
     {
-        BOOST_REQUIRE(simulation->nextPath(path));
+        if (!simulation->nextPath(path))
+            BOOST_FAIL("No next path available");
         Real processValue = 0.0;
         for (auto& j : path)
             processValue += j.second;
@@ -165,49 +176,29 @@ void CatBondTest::testBetaRisk() {
         poissonSumSquares+=path.size()*path.size();
     }
     Real poissonMean = poissonSum/PATHS;
-    BOOST_CHECK_CLOSE(Real(3.0/100.0), poissonMean, 2);
+    QL_CHECK_CLOSE(Real(3.0/100.0), poissonMean, 2);
     Real poissonVar = poissonSumSquares/PATHS - poissonMean*poissonMean;
-    BOOST_CHECK_CLOSE(Real(3.0/100.0), poissonVar, 5);
+    QL_CHECK_CLOSE(Real(3.0/100.0), poissonVar, 5);
     
     Real expectedMean = 3.0*10.0/100.0;
     Real actualMean = sum/PATHS;
-    BOOST_CHECK_CLOSE(expectedMean, actualMean, 1);
+    #ifdef _LIBCPP_VERSION
+    QL_CHECK_CLOSE(expectedMean, actualMean, 5);
+    #else
+    QL_CHECK_CLOSE(expectedMean, actualMean, 1);
+    #endif
     
     Real expectedVar = 3.0*(15.0*15.0+10*10)/100.0;
     Real actualVar = sumSquares/PATHS - actualMean*actualMean;
-    #if BOOST_VERSION > 106300
-    // changes in Boost.Random after 1.64 increased numerical error
-    BOOST_CHECK_CLOSE(expectedVar, actualVar, 1.5);
+    #ifdef _LIBCPP_VERSION
+    QL_CHECK_CLOSE(expectedVar, actualVar, 10);
     #else
-    BOOST_CHECK_CLOSE(expectedVar, actualVar, 1);
+    QL_CHECK_CLOSE(expectedVar, actualVar, 1);
     #endif
 }
 
-namespace catbonds_test {
-
-    struct CommonVars {
-        // common data
-        Calendar calendar;
-        Date today;
-        Real faceAmount;
-
-        // cleanup
-        SavedSettings backup;
-
-        // setup
-        CommonVars() {
-            calendar = TARGET();
-            today = calendar.adjust(Date::todaysDate());
-            Settings::instance().evaluationDate() = today;
-            faceAmount = 1000000.0;
-        }
-    };
-}
-
-void CatBondTest::testRiskFreeAgainstFloatingRateBond() {
+BOOST_AUTO_TEST_CASE(testRiskFreeAgainstFloatingRateBond) {
     BOOST_TEST_MESSAGE("Testing floating-rate cat bond against risk-free floating-rate bond...");
-
-    using namespace catbonds_test;
 
     bool usingAtParCoupons = IborCoupon::Settings::instance().usingAtParCoupons();
 
@@ -372,12 +363,8 @@ void CatBondTest::testRiskFreeAgainstFloatingRateBond() {
     }
 }
 
-
-
-void CatBondTest::testCatBondInDoomScenario() {
+BOOST_AUTO_TEST_CASE(testCatBondInDoomScenario) {
     BOOST_TEST_MESSAGE("Testing floating-rate cat bond in a doom scenario (certain default)...");
-
-    using namespace catbonds_test;
 
     CommonVars vars;
 
@@ -405,7 +392,7 @@ void CatBondTest::testCatBondInDoomScenario() {
                  DateGeneration::Backward, false);
 
     ext::shared_ptr<std::vector<std::pair<Date, Real> > > events(new std::vector<std::pair<Date, Real> >());
-    events->push_back(std::pair<Date, Real>(Date(30,November,2004), 1000));
+    events->emplace_back(Date(30,November,2004), 1000);
     ext::shared_ptr<CatRisk> doomCatRisk(new EventSet(
         events, 
         Date(30,November,2004), Date(30,November,2008)));
@@ -433,16 +420,13 @@ void CatBondTest::testCatBondInDoomScenario() {
     Real exhaustionProbability = catBond.exhaustionProbability();
     Real expectedLoss = catBond.expectedLoss();
 
-    BOOST_CHECK_CLOSE(Real(1.0), lossProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(1.0), exhaustionProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(1.0), expectedLoss, tolerance);
+    QL_CHECK_CLOSE(Real(1.0), lossProbability, tolerance);
+    QL_CHECK_CLOSE(Real(1.0), exhaustionProbability, tolerance);
+    QL_CHECK_CLOSE(Real(1.0), expectedLoss, tolerance);
 }
 
-
-void CatBondTest::testCatBondWithDoomOnceInTenYears() {
+BOOST_AUTO_TEST_CASE(testCatBondWithDoomOnceInTenYears) {
     BOOST_TEST_MESSAGE("Testing floating-rate cat bond in a doom once in 10 years scenario...");
-
-    using namespace catbonds_test;
 
     CommonVars vars;
 
@@ -470,7 +454,7 @@ void CatBondTest::testCatBondWithDoomOnceInTenYears() {
                  DateGeneration::Backward, false);
 
     ext::shared_ptr<std::vector<std::pair<Date, Real> > > events(new std::vector<std::pair<Date, Real> >());
-    events->push_back(std::pair<Date, Real>(Date(30,November,2008), 1000));
+    events->emplace_back(Date(30,November,2008), 1000);
     ext::shared_ptr<CatRisk> doomCatRisk(new EventSet(
         events, 
         Date(30,November,2004), Date(30,November,2044)));
@@ -501,9 +485,9 @@ void CatBondTest::testCatBondWithDoomOnceInTenYears() {
     Real exhaustionProbability = catBond.exhaustionProbability();
     Real expectedLoss = catBond.expectedLoss();
 
-    BOOST_CHECK_CLOSE(Real(0.1), lossProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(0.1), exhaustionProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(0.1), expectedLoss, tolerance);
+    QL_CHECK_CLOSE(Real(0.1), lossProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.1), exhaustionProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.1), expectedLoss, tolerance);
 
     ext::shared_ptr<PricingEngine> catBondEngineRF(new MonteCarloCatBondEngine(noCatRisk, discountCurve));
     catBond.setPricingEngine(catBondEngineRF);
@@ -514,18 +498,16 @@ void CatBondTest::testCatBondWithDoomOnceInTenYears() {
     Real riskFreeExhaustionProbability = catBond.exhaustionProbability();
     Real riskFreeExpectedLoss = catBond.expectedLoss();
     
-    BOOST_CHECK_CLOSE(Real(0.0), riskFreeLossProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(0.0), riskFreeExhaustionProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.0), riskFreeLossProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.0), riskFreeExhaustionProbability, tolerance);
     BOOST_CHECK(std::abs(riskFreeExpectedLoss) < tolerance);
     
-    BOOST_CHECK_CLOSE(riskFreePrice*0.9, price, tolerance);
+    QL_CHECK_CLOSE(riskFreePrice*0.9, price, tolerance);
     BOOST_CHECK_LT(riskFreeYield, yield);
 }
 
-void CatBondTest::testCatBondWithDoomOnceInTenYearsProportional() {
+BOOST_AUTO_TEST_CASE(testCatBondWithDoomOnceInTenYearsProportional) {
     BOOST_TEST_MESSAGE("Testing floating-rate cat bond in a doom once in 10 years scenario with proportional notional reduction...");
-
-    using namespace catbonds_test;
 
     CommonVars vars;
 
@@ -553,7 +535,7 @@ void CatBondTest::testCatBondWithDoomOnceInTenYearsProportional() {
                  DateGeneration::Backward, false);
 
     ext::shared_ptr<std::vector<std::pair<Date, Real> > > events(new std::vector<std::pair<Date, Real> >());
-    events->push_back(std::pair<Date, Real>(Date(30,November,2008), 1000));
+    events->emplace_back(Date(30,November,2008), 1000);
     ext::shared_ptr<CatRisk> doomCatRisk(new EventSet(
         events, 
         Date(30,November,2004), Date(30,November,2044)));
@@ -584,9 +566,9 @@ void CatBondTest::testCatBondWithDoomOnceInTenYearsProportional() {
     Real exhaustionProbability = catBond.exhaustionProbability();
     Real expectedLoss = catBond.expectedLoss();
 
-    BOOST_CHECK_CLOSE(Real(0.1), lossProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(0.0), exhaustionProbability, tolerance);
-    BOOST_CHECK_CLOSE(Real(0.05), expectedLoss, tolerance);
+    QL_CHECK_CLOSE(Real(0.1), lossProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.0), exhaustionProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.05), expectedLoss, tolerance);
 
     ext::shared_ptr<PricingEngine> catBondEngineRF(new MonteCarloCatBondEngine(noCatRisk, discountCurve));
     catBond.setPricingEngine(catBondEngineRF);
@@ -596,18 +578,15 @@ void CatBondTest::testCatBondWithDoomOnceInTenYearsProportional() {
     Real riskFreeLossProbability = catBond.lossProbability();
     Real riskFreeExpectedLoss = catBond.expectedLoss();
     
-    BOOST_CHECK_CLOSE(Real(0.0), riskFreeLossProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.0), riskFreeLossProbability, tolerance);
     BOOST_CHECK(std::abs(riskFreeExpectedLoss) < tolerance);
     
-    BOOST_CHECK_CLOSE(riskFreePrice*0.95, price, tolerance);
+    QL_CHECK_CLOSE(riskFreePrice*0.95, price, tolerance);
     BOOST_CHECK_LT(riskFreeYield, yield);
 }
 
-
-void CatBondTest::testCatBondWithGeneratedEventsProportional() {
+BOOST_AUTO_TEST_CASE(testCatBondWithGeneratedEventsProportional) {
     BOOST_TEST_MESSAGE("Testing floating-rate cat bond in a generated scenario with proportional notional reduction...");
-
-    using namespace catbonds_test;
 
     CommonVars vars;
 
@@ -674,24 +653,13 @@ void CatBondTest::testCatBondWithGeneratedEventsProportional() {
     Real riskFreeLossProbability = catBond.lossProbability();
     Real riskFreeExpectedLoss = catBond.expectedLoss();
     
-    BOOST_CHECK_CLOSE(Real(0.0), riskFreeLossProbability, tolerance);
+    QL_CHECK_CLOSE(Real(0.0), riskFreeLossProbability, tolerance);
     BOOST_CHECK(std::abs(riskFreeExpectedLoss) < tolerance);
     
     BOOST_CHECK_GT(riskFreePrice, price);
     BOOST_CHECK_LT(riskFreeYield, yield);
 }
 
-test_suite* CatBondTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("CatBond tests");
+BOOST_AUTO_TEST_SUITE_END()
 
-    suite->add(QUANTLIB_TEST_CASE(&CatBondTest::testEventSetForWholeYears));
-    suite->add(QUANTLIB_TEST_CASE(&CatBondTest::testEventSetForIrregularPeriods));
-    suite->add(QUANTLIB_TEST_CASE(&CatBondTest::testEventSetForNoEvents));
-    suite->add(QUANTLIB_TEST_CASE(&CatBondTest::testBetaRisk));
-    suite->add(QUANTLIB_TEST_CASE(&CatBondTest::testRiskFreeAgainstFloatingRateBond));
-    suite->add(QUANTLIB_TEST_CASE(&CatBondTest::testCatBondInDoomScenario));
-    suite->add(QUANTLIB_TEST_CASE(&CatBondTest::testCatBondWithDoomOnceInTenYears));
-    suite->add(QUANTLIB_TEST_CASE(&CatBondTest::testCatBondWithDoomOnceInTenYearsProportional));
-    suite->add(QUANTLIB_TEST_CASE(&CatBondTest::testCatBondWithGeneratedEventsProportional));
-    return suite;
-}
+BOOST_AUTO_TEST_SUITE_END()

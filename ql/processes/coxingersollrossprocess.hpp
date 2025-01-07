@@ -18,7 +18,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-/*! \file coxingersollross.hpp
+/*! \file coxingersollrossprocess.hpp
     \brief CoxIngersollRoss process
 */
 
@@ -131,7 +131,7 @@ namespace QuantLib {
 
             const Real u = CumulativeNormalDistribution()(dw);
 
-            result = ((u <= p) ? 0.0 : std::log((1-p)/(1-u))/beta);
+            result = ((u <= p) ? 0.0 : Real(std::log((1-p)/(1-u))/beta));
         }
 
         return result;

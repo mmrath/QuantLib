@@ -49,34 +49,22 @@ namespace QuantLib {
                               const Date& paymentDate,
                               bool growthOnly = false);
 
-        /*! The fixings dates for the index are `startDate - observationLag` and
-            `endDate - observationLag`, adjusted on the passed calendar.
-        */
-        ZeroInflationCashFlow(Real notional,
-                              const ext::shared_ptr<ZeroInflationIndex>& index,
-                              CPI::InterpolationType observationInterpolation,
-                              const Date& startDate,
-                              const Date& endDate,
-                              const Period& observationLag,
-                              const Calendar& calendar,
-                              BusinessDayConvention convention,
-                              const Date& paymentDate,
-                              bool growthOnly = false);
-
         //! \name ZeroInflationCashFlow interface
         //@{
         ext::shared_ptr<ZeroInflationIndex> zeroInflationIndex() const {
             return zeroInflationIndex_;
         }
         CPI::InterpolationType observationInterpolation() const {
-            return observationInterpolation_;
+            return interpolation_;
         }
         //@}
 
-        //! \name CashFlow interface
+        //! \name ZeroInflationCashFlow interface
         //@{
-        Real amount() const override;
+        Real baseFixing() const override;
+        Real indexFixing() const override;
         //@}
+
         //! \name Visitability
         //@{
         void accept(AcyclicVisitor&) override;
@@ -84,7 +72,7 @@ namespace QuantLib {
 
       private:
         ext::shared_ptr<ZeroInflationIndex> zeroInflationIndex_;
-        CPI::InterpolationType observationInterpolation_;
+        CPI::InterpolationType interpolation_;
         Date startDate_, endDate_;
         Period observationLag_;
     };

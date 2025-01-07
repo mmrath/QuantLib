@@ -31,9 +31,6 @@
 namespace QuantLib {
 
     //! Probability formulas and algorithms
-    /*!
-      \ingroup probability
-    */ 
     class LossDist {
     public:
       LossDist() = default;
@@ -95,9 +92,6 @@ namespace QuantLib {
     };
 
     //! Binomial loss distribution
-    /*! Binomial loss distribution
-      \ingroup probability
-    */
     class LossDistBinomial : public LossDist {
     public:
         LossDistBinomial (Size nBuckets, Real maximum)
@@ -140,29 +134,24 @@ namespace QuantLib {
 
       John Hull and Alan White, "Valuation of a CDO and nth to default CDS 
       without Monte Carlo simulation", Journal of Derivatives 12, 2, 2004 
-
-      \ingroup probability
      */
     class LossDistHomogeneous : public LossDist {
     public:
-        LossDistHomogeneous (Size nBuckets, Real maximum)
-            : nBuckets_(nBuckets), maximum_(maximum),
-              n_(0), volume_(0.0) {}
-        Distribution operator()(Real volume, 
-                                const std::vector<Real>& probabilities) const;
-        Distribution operator()(const std::vector<Real>& volumes,
-                                const std::vector<Real>& probabilities) const override;
-        Size buckets() const override { return nBuckets_; }
-        Real maximum() const override { return maximum_; }
-        Size size () const { return n_; }
-        Real volume() const { return volume_; }
-        std::vector<Real> probability() const { return probability_; }
-        std::vector<Real> excessProbability() const { return excessProbability_; }
+      LossDistHomogeneous(Size nBuckets, Real maximum) : nBuckets_(nBuckets), maximum_(maximum) {}
+      Distribution operator()(Real volume, const std::vector<Real>& probabilities) const;
+      Distribution operator()(const std::vector<Real>& volumes,
+                              const std::vector<Real>& probabilities) const override;
+      Size buckets() const override { return nBuckets_; }
+      Real maximum() const override { return maximum_; }
+      Size size() const { return n_; }
+      Real volume() const { return volume_; }
+      std::vector<Real> probability() const { return probability_; }
+      std::vector<Real> excessProbability() const { return excessProbability_; }
     private:
         Size nBuckets_;
         Real maximum_;
-        mutable Size n_;
-        mutable Real volume_;
+        mutable Size n_ = 0;
+        mutable Real volume_ = 0.0;
         mutable std::vector<Real> probability_;
         mutable std::vector<Real> excessProbability_;
     };
@@ -177,8 +166,6 @@ namespace QuantLib {
 
       John Hull and Alan White, "Valuation of a CDO and nth to default CDS 
       without Monte Carlo simulation", Journal of Derivatives 12, 2, 2004. 
-
-      \ingroup probability
     */
     class LossDistBucketing : public LossDist {
     public:
@@ -202,8 +189,6 @@ namespace QuantLib {
     /*!
       Loss distribution for varying volumes and probabilities of default
       via Monte Carlo simulation of independent default events.
-
-      \ingroup probability
     */
     class LossDistMonteCarlo : public LossDist {
     public:

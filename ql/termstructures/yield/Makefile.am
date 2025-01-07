@@ -8,7 +8,6 @@ this_include_HEADERS = \
     bootstraptraits.hpp \
     compositezeroyieldstructure.hpp \
     discountcurve.hpp \
-    drifttermstructure.hpp \
     fittedbonddiscountcurve.hpp \
     flatforward.hpp \
     forwardcurve.hpp \

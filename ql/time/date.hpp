@@ -34,13 +34,13 @@
 #include <ql/time/period.hpp>
 #include <ql/time/weekday.hpp>
 #include <ql/utilities/null.hpp>
-#include <boost/cstdint.hpp>
 
 #ifdef QL_HIGH_RESOLUTION_DATE
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #endif
 
+#include <cstdint>
 #include <utility>
 #include <functional>
 #include <string>
@@ -104,7 +104,7 @@ namespace QuantLib {
     typedef boost::posix_time::time_duration::fractional_seconds_type
         Millisecond;
 
-    //! Millisecond number
+    //! Microsecond number
     /*! \ingroup datetime */
     typedef boost::posix_time::time_duration::fractional_seconds_type
         Microsecond;
@@ -125,7 +125,7 @@ namespace QuantLib {
     class Date {
       public:
         //! serial number type
-        typedef boost::int_fast32_t serial_type;
+        typedef std::int_fast32_t serial_type;
         //! \name constructors
         //@{
         //! Default constructor returning a null date.
@@ -207,6 +207,10 @@ namespace QuantLib {
         static Date maxDate();
         //! whether the given year is a leap one
         static bool isLeap(Year y);
+        //! first day of the month to which the given date belongs
+        static Date startOfMonth(const Date& d);
+        //! whether a date is the first day of its month
+        static bool isStartOfMonth(const Date& d);
         //! last day of the month to which the given date belongs
         static Date endOfMonth(const Date& d);
         //! whether a date is the last day of its month
@@ -288,9 +292,9 @@ namespace QuantLib {
       Example:
 
       \code{.cpp}
-      #include <boost/unordered_set.hpp>
+      #include <unordered_set>
 
-      boost::unordered_set<Date> set;
+      std::unordered_set<Date> set;
       Date d = Date(1, Jan, 2020); 
 
       set.insert(d);
@@ -370,18 +374,20 @@ namespace QuantLib {
 
     }
 
-    //! specialization of Null template for the Date class
-    template <>
-    class Null<Date> {
-      public:
-        Null() = default;
-        operator Date() const { return {}; }
-    };
 
-
-#ifndef QL_HIGH_RESOLUTION_DATE
     // inline definitions
 
+    inline Date Date::startOfMonth(const Date& d) {
+        Month m = d.month();
+        Year y = d.year();
+        return Date(1, m, y);
+    }
+
+    inline bool Date::isStartOfMonth(const Date& d) {
+       return (d.dayOfMonth() == 1);
+    }
+
+#ifndef QL_HIGH_RESOLUTION_DATE
     inline Weekday Date::weekday() const {
         Integer w = serialNumber_ % 7;
         return Weekday(w == 0 ? 7 : w);
@@ -457,6 +463,15 @@ namespace QuantLib {
         return (d1.serialNumber() >= d2.serialNumber());
     }
 #endif
+}
+
+namespace std {
+    template<>
+    struct hash<QuantLib::Date> {
+        std::size_t operator()(const QuantLib::Date& d) const {
+            return QuantLib::hash_value(d);
+        }
+    };
 }
 
 #endif

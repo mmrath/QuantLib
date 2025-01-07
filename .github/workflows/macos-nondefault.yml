@@ -1,44 +1,35 @@
 name: Mac OS build with non-default configuration
-on: workflow_dispatch
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [macos-13, macos-14]
+        classes: [boost, std]
         include:
-          - os: [macos-10.15]
-            shortname: default
-          - os: [macos-10.15]
-            shortname: stdclasses
-            cxxflags: "-std=c++17"
-            configureflags: --enable-std-classes
-          - os: [macos-11]
-            shortname: default-11
-          - os: [macos-11]
-            shortname: stdclasses-11
-            cxxflags: "-std=c++17"
+          - classes: std
             configureflags: --enable-std-classes
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Setup
+      env:
+        HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
       run: |
-        brew install automake boost ccache
-    - name: Cache
-      uses: actions/cache@v2
-      with:
-        path: ~/Library/Caches/ccache
-        key: ${{ matrix.os }}-${{ matrix.shortname }}-nondef-build-${{ github.ref }}-${{ github.head_ref }}-${{ hashFiles('**/*.hpp', '**/*.cpp', '**/macos.yml') }}
-        restore-keys: |
-          ${{ matrix.os }}-${{ matrix.shortname }}-nondef-build-${{ github.ref }}-${{ github.head_ref }}-
-          ${{ matrix.os }}-${{ matrix.shortname }}-nondef-build-${{ github.ref }}-
-          ${{ matrix.os }}-${{ matrix.shortname }}-nondef-build-refs/heads/master-
-          ${{ matrix.os }}-${{ matrix.shortname }}-nondef-build-
+        brew install automake autoconf libtool boost
+    - name: Compiler version
+      run: |
+        clang --version
     - name: Build
       run: |
         ./autogen.sh
-        ./configure --disable-shared --enable-error-lines --enable-error-functions --enable-tracing --enable-indexed-coupons --enable-extra-safety-checks --enable-sessions --enable-thread-safe-observer-pattern --enable-intraday ${{ matrix.configureflags }}  CC="ccache clang" CXX="ccache clang++" CXXFLAGS="-O2 -g0 -Wall -Werror -stdlib=libc++ -mmacosx-version-min=10.9 ${{ matrix.cxxflags }}" LDFLAGS="-stdlib=libc++ -mmacosx-version-min=10.9"
-        make -j 2
+        ./configure --disable-shared --with-boost-include=`brew --prefix`/include --enable-error-lines --enable-error-functions --enable-tracing --enable-indexed-coupons --enable-extra-safety-checks --enable-sessions --enable-thread-safe-observer-pattern --enable-intraday --disable-faster-lazy-objects --enable-throwing-in-cycles --enable-null-as-functions ${{ matrix.configureflags }} CC="clang" CXX="clang++" CXXFLAGS="-O2 -g0 -Wall -Werror"
+        cat ql/config.hpp
+        make -j 3
     - name: Run tests
       run: |
         ./test-suite/quantlib-test-suite --log_level=message

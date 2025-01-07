@@ -122,7 +122,7 @@ namespace QuantLib {
             Real jac(Real a, Real, Real y) const {
                 Real s=0.0;
                 for (Size i=0; i < points_.size(); ++i) {
-                    s+=1.0/(betas_[i] + square<Real>()(y - points_[i]));
+                    s+=1.0/(betas_[i] + squared(y - points_[i]));
                 }
                 return a/std::sqrt(s);
             }
@@ -140,7 +140,7 @@ namespace QuantLib {
 
     Concentrating1dMesher::Concentrating1dMesher(
         Real start, Real end, Size size,
-        const std::vector<ext::tuple<Real, Real, bool> >& cPoints,
+        const std::vector<std::tuple<Real, Real, bool> >& cPoints,
         Real tol)
     : Fdm1dMesher(size) {
 
@@ -148,8 +148,8 @@ namespace QuantLib {
 
         std::vector<Real> points, betas;
         for (const auto& cPoint : cPoints) {
-            points.push_back(ext::get<0>(cPoint));
-            betas.push_back(square<Real>()(ext::get<1>(cPoint) * (end - start)));
+            points.push_back(std::get<0>(cPoint));
+            betas.push_back(squared(std::get<1>(cPoint) * (end - start)));
         }
 
         // get scaling factor a so that y(1) = end
@@ -162,7 +162,7 @@ namespace QuantLib {
 
         OdeIntegrationFct fct(points, betas, tol);
         const Real a = Brent().solve(
-            [&](Real x) { return fct.solve(x, start, 0.0, 1.0) - end; },
+            [&](Real x) -> Real { return fct.solve(x, start, 0.0, 1.0) - end; },
             tol, aInit, 0.1*aInit);
 
         // solve ODE for all grid points
@@ -186,13 +186,13 @@ namespace QuantLib {
         std::vector<std::pair<Real, Real> > w(1, std::make_pair(0.0, 0.0));
 
         for (Size i=0; i < points.size(); ++i) {
-            if (ext::get<2>(cPoints[i]) && points[i] > start && points[i] < end) {
+            if (std::get<2>(cPoints[i]) && points[i] > start && points[i] < end) {
 
                 const Size j = std::distance(y.begin(),
                         std::lower_bound(y.begin(), y.end(), points[i]));
 
                 const Real e = Brent().solve(
-                    [&](Real x){ return odeSolution(x, true) - points[i]; },
+                    [&](Real x) -> Real { return odeSolution(x, true) - points[i]; },
                     QL_EPSILON, x[j], 0.5/size);
 
                 w.emplace_back(std::min(x[size - 2], x[j]), e);

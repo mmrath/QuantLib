@@ -45,6 +45,32 @@ namespace QuantLib {
           protected InterpolatedCurve<Interpolator> {
       public:
         InterpolatedYoYInflationCurve(const Date& referenceDate,
+                                      std::vector<Date> dates,
+                                      const std::vector<Rate>& rates,
+                                      Frequency frequency,
+                                      const DayCounter& dayCounter,
+                                      const ext::shared_ptr<Seasonality>& seasonality = {},
+                                      const Interpolator& interpolator = Interpolator());
+
+        /*! \deprecated Use the overload without indexIsInterpolated.
+                        Deprecated in version 1.37.
+        */
+        [[deprecated("Use the overload without indexIsInterpolated")]]
+        InterpolatedYoYInflationCurve(const Date& referenceDate,
+                                      std::vector<Date> dates,
+                                      const std::vector<Rate>& rates,
+                                      Frequency frequency,
+                                      bool indexIsInterpolated,
+                                      const DayCounter& dayCounter,
+                                      const ext::shared_ptr<Seasonality>& seasonality = {},
+                                      const Interpolator& interpolator = Interpolator());
+
+        /*! \deprecated Use the overload without lag and indexIsInterpolated and
+                        pass the base date as the first date in the vector.
+                        Deprecated in version 1.34.
+        */
+        [[deprecated("Use the overload without lag and indexIsInterpolated and pass the base date as the first date in the vector")]]
+        InterpolatedYoYInflationCurve(const Date& referenceDate,
                                       const Calendar& calendar,
                                       const DayCounter& dayCounter,
                                       const Period& lag,
@@ -81,14 +107,39 @@ namespace QuantLib {
             construction.
         */
         InterpolatedYoYInflationCurve(const Date& referenceDate,
+                                      Date baseDate,
+                                      Rate baseYoYRate,
+                                      Frequency frequency,
+                                      const DayCounter& dayCounter,
+                                      const ext::shared_ptr<Seasonality>& seasonality = {},
+                                      const Interpolator& interpolator = Interpolator());
+
+        /*! \deprecated Use the overload without indexIsInterpolated.
+                        Deprecated in version 1.37.
+        */
+        [[deprecated("Use the overload without indexIsInterpolated")]]
+        InterpolatedYoYInflationCurve(const Date& referenceDate,
+                                      Date baseDate,
+                                      Rate baseYoYRate,
+                                      Frequency frequency,
+                                      bool indexIsInterpolated,
+                                      const DayCounter& dayCounter,
+                                      const ext::shared_ptr<Seasonality>& seasonality = {},
+                                      const Interpolator& interpolator = Interpolator());
+
+        /*! \deprecated Use the overload without lag and indexIsInterpolated and
+                        pass the base date as the first date in the vector.
+                        Deprecated in version 1.34.
+        */
+        [[deprecated("Use the overload without lag and indexIsInterpolated and pass the base date as the first date in the vector")]]
+        InterpolatedYoYInflationCurve(const Date& referenceDate,
                                       const Calendar& calendar,
                                       const DayCounter& dayCounter,
                                       Rate baseYoYRate,
                                       const Period& lag,
                                       Frequency frequency,
                                       bool indexIsInterpolated,
-                                      const Interpolator& interpolator
-                                                            = Interpolator());
+                                      const Interpolator& interpolator = Interpolator());
     };
 
     typedef InterpolatedYoYInflationCurve<Linear> YoYInflationCurve;
@@ -96,6 +147,88 @@ namespace QuantLib {
 
 
     // template definitions
+
+    template <class Interpolator>
+    InterpolatedYoYInflationCurve<Interpolator>::InterpolatedYoYInflationCurve(
+        const Date& referenceDate,
+        std::vector<Date> dates,
+        const std::vector<Rate>& rates,
+        Frequency frequency,
+        const DayCounter& dayCounter,
+        const ext::shared_ptr<Seasonality>& seasonality,
+        const Interpolator& interpolator)
+    : YoYInflationTermStructure(referenceDate, dates.at(0), rates[0],
+                                frequency, dayCounter, seasonality),
+      InterpolatedCurve<Interpolator>(std::vector<Time>(), rates, interpolator),
+      dates_(std::move(dates)) {
+
+        QL_REQUIRE(dates_.size()>1, "too few dates: " << dates_.size());
+
+        QL_REQUIRE(this->data_.size() == dates_.size(),
+                   "indices/dates count mismatch: "
+                   << this->data_.size() << " vs " << dates_.size());
+
+        for (Size i = 1; i < dates_.size(); i++) {
+            // YoY inflation data may be positive or negative
+            // but must be greater than -1
+            QL_REQUIRE(this->data_[i] > -1.0,
+                       "year-on-year inflation data < -100 %");
+        }
+
+        this->setupTimes(dates_, referenceDate, dayCounter);
+        this->setupInterpolation();
+        this->interpolation_.update();
+    }
+
+    template <class Interpolator>
+    InterpolatedYoYInflationCurve<Interpolator>::InterpolatedYoYInflationCurve(
+        const Date& referenceDate,
+        std::vector<Date> dates,
+        const std::vector<Rate>& rates,
+        Frequency frequency,
+        bool indexIsInterpolated,
+        const DayCounter& dayCounter,
+        const ext::shared_ptr<Seasonality>& seasonality,
+        const Interpolator& interpolator)
+    : InterpolatedYoYInflationCurve(referenceDate, dates, rates, frequency,
+                                    dayCounter, seasonality, interpolator) {
+        QL_DEPRECATED_DISABLE_WARNING
+        indexIsInterpolated_ = indexIsInterpolated;
+        QL_DEPRECATED_ENABLE_WARNING
+    }
+
+    template <class Interpolator>
+    InterpolatedYoYInflationCurve<Interpolator>::
+    InterpolatedYoYInflationCurve(const Date& referenceDate,
+                                  Date baseDate,
+                                  Rate baseYoYRate,
+                                  Frequency frequency,
+                                  const DayCounter& dayCounter,
+                                  const ext::shared_ptr<Seasonality>& seasonality,
+                                  const Interpolator& interpolator)
+    : YoYInflationTermStructure(referenceDate, baseDate, baseYoYRate,
+                                frequency, dayCounter, seasonality),
+      InterpolatedCurve<Interpolator>(interpolator) {}
+
+    template <class Interpolator>
+    InterpolatedYoYInflationCurve<Interpolator>::
+    InterpolatedYoYInflationCurve(const Date& referenceDate,
+                                  Date baseDate,
+                                  Rate baseYoYRate,
+                                  Frequency frequency,
+                                  bool indexIsInterpolated,
+                                  const DayCounter& dayCounter,
+                                  const ext::shared_ptr<Seasonality>& seasonality,
+                                  const Interpolator& interpolator)
+    : InterpolatedYoYInflationCurve(referenceDate, baseDate, baseYoYRate, frequency,
+                                    dayCounter, seasonality, interpolator) {
+        QL_DEPRECATED_DISABLE_WARNING
+        indexIsInterpolated_ = indexIsInterpolated;
+        QL_DEPRECATED_ENABLE_WARNING
+    }
+
+
+    QL_DEPRECATED_DISABLE_WARNING
 
     template <class Interpolator>
     InterpolatedYoYInflationCurve<Interpolator>::InterpolatedYoYInflationCurve(
@@ -128,29 +261,15 @@ namespace QuantLib {
                    "indices/dates count mismatch: "
                    << this->data_.size() << " vs " << dates_.size());
 
-        this->times_.resize(dates_.size());
-        this->times_[0] = timeFromReference(dates_[0]);
-
         for (Size i = 1; i < dates_.size(); i++) {
-            QL_REQUIRE(dates_[i] > dates_[i-1],
-                       "dates not sorted");
             // YoY inflation data may be positive or negative
             // but must be greater than -1
             QL_REQUIRE(this->data_[i] > -1.0,
                        "year-on-year inflation data < -100 %");
-
-            // this can be negative
-            this->times_[i] = timeFromReference(dates_[i]);
-
-            QL_REQUIRE(!close(this->times_[i],this->times_[i-1]),
-                       "two dates correspond to the same time "
-                       "under this curve's day count convention");
         }
 
-        this->interpolation_ =
-            this->interpolator_.interpolate(this->times_.begin(),
-                                            this->times_.end(),
-                                            this->data_.begin());
+        this->setupTimes(dates_, referenceDate, dayCounter);
+        this->setupInterpolation();
         this->interpolation_.update();
     }
 
@@ -168,10 +287,15 @@ namespace QuantLib {
                                 lag, frequency, indexIsInterpolated),
       InterpolatedCurve<Interpolator>(interpolator) {}
 
+    QL_DEPRECATED_ENABLE_WARNING
+
 
     template <class T>
-    Date InterpolatedYoYInflationCurve<T>::baseDate() const{
-        return dates_.front();
+    Date InterpolatedYoYInflationCurve<T>::baseDate() const {
+        if (hasExplicitBaseDate())
+            return YoYInflationTermStructure::baseDate();
+        else
+            return dates_.front();
     }
 
     template <class T>

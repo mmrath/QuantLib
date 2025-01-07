@@ -50,16 +50,16 @@ namespace QuantLib {
         void calculate() const override {
             QL_REQUIRE(arguments_.settlementType == Settlement::Physical,
                        "cash-settled swaptions not priced with G2 engine");
+            QL_REQUIRE(!model_.empty(), "no model specified");
 
             // adjust the fixed rate of the swap for the spread on the
             // floating leg (which is not taken into account by the
             // model)
-            VanillaSwap swap = *arguments_.swap;
-            swap.setPricingEngine(ext::shared_ptr<PricingEngine>(
-                  new DiscountingSwapEngine(model_->termStructure(), false)));
-            Spread correction = swap.spread() *
-                std::fabs(swap.floatingLegBPS() / swap.fixedLegBPS());
-            Rate fixedRate = swap.fixedRate() - correction;
+            auto swap = arguments_.swap;
+            swap->setPricingEngine(ext::make_shared<DiscountingSwapEngine>(model_->termStructure(), false));
+            Spread correction = swap->spread() *
+                std::fabs(swap->floatingLegBPS() / swap->fixedLegBPS());
+            Rate fixedRate = swap->fixedRate() - correction;
 
             results_.value =  model_->swaption(arguments_, fixedRate,
                                                range_, intervals_);

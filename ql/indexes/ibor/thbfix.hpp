@@ -26,9 +26,6 @@
 
 #include <ql/indexes/ibor/libor.hpp>
 #include <ql/time/calendars/thailand.hpp>
-#include <ql/time/calendars/unitedstates.hpp>
-#include <ql/time/calendars/unitedkingdom.hpp>
-#include <ql/time/calendars/jointcalendar.hpp>
 #include <ql/time/daycounters/actual365fixed.hpp>
 #include <ql/currencies/asia.hpp>
 
@@ -53,14 +50,11 @@ namespace QuantLib {
     class THBFIX : public IborIndex {
       public:
         THBFIX(const Period& tenor,
-               const Handle<YieldTermStructure>& h =
-                                    Handle<YieldTermStructure>())
+               const Handle<YieldTermStructure>& h = {})
         : IborIndex("THBFIX", tenor,
                     2,
                     THBCurrency(),
-                    JointCalendar(UnitedKingdom(UnitedKingdom::Exchange),
-                                  JointCalendar(UnitedStates(UnitedStates::LiborImpact),
-                                                Thailand())),
+                    Thailand(),
                     ModifiedFollowing, true,
                     Actual365Fixed(), h) {}
     };

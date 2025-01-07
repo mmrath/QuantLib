@@ -34,12 +34,12 @@ namespace QuantLib {
         const DayCounter& dc,
         const ext::shared_ptr<Gaussian1dSwaptionEngine>& swaptionEngine)
     : SmileSection(fixingDate, dc, model->termStructure()->referenceDate()),
-      fixingDate_(fixingDate), swapIndex_(std::move(swapIndex)),
-      iborIndex_(ext::shared_ptr<IborIndex>()), model_(model), engine_(swaptionEngine) {
+      fixingDate_(fixingDate), swapIndex_(std::move(swapIndex)), model_(model),
+      engine_(swaptionEngine) {
 
-        atm_ = model_->swapRate(fixingDate_, swapIndex_->tenor(), Null<Date>(), 0.0, swapIndex_);
+        atm_ = model_->swapRate(fixingDate_, swapIndex_->tenor(), Date(), 0.0, swapIndex_);
         annuity_ =
-            model_->swapAnnuity(fixingDate_, swapIndex_->tenor(), Null<Date>(), 0.0, swapIndex_);
+            model_->swapAnnuity(fixingDate_, swapIndex_->tenor(), Date(), 0.0, swapIndex_);
 
         if (engine_ == nullptr) {
             engine_ = ext::make_shared<Gaussian1dSwaptionEngine>(
@@ -54,10 +54,9 @@ namespace QuantLib {
         const DayCounter& dc,
         const ext::shared_ptr<Gaussian1dCapFloorEngine>& capEngine)
     : SmileSection(fixingDate, dc, model->termStructure()->referenceDate()),
-      fixingDate_(fixingDate), swapIndex_(ext::shared_ptr<SwapIndex>()),
-      iborIndex_(std::move(iborIndex)), model_(model), engine_(capEngine) {
+      fixingDate_(fixingDate), iborIndex_(std::move(iborIndex)), model_(model), engine_(capEngine) {
 
-        atm_ = model_->forwardRate(fixingDate_, Null<Date>(), 0.0, iborIndex_);
+        atm_ = model_->forwardRate(fixingDate_, Date(), 0.0, iborIndex_);
         CapFloor c =
             MakeCapFloor(CapFloor::Cap, iborIndex_->tenor(), iborIndex_, Null<Real>(), 0 * Days)
                 .withEffectiveDate(fixingDate_, false);

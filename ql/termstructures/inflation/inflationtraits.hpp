@@ -33,8 +33,8 @@
 namespace QuantLib {
 
     namespace detail {
-        const Rate avgInflation = 0.02;
-        const Rate maxInflation = 0.5;
+        constexpr double avgInflation = 0.02;
+        constexpr double maxInflation = 0.5;
     }
 
     //! Bootstrap traits to use for PiecewiseZeroInflationCurve
@@ -44,11 +44,15 @@ namespace QuantLib {
 
         // start of curve data
         static Date initialDate(const ZeroInflationTermStructure* t) {
-            return inflationPeriod(t->referenceDate() - t->observationLag(), t->frequency()).first;
+            if (t->hasExplicitBaseDate())
+                return t->baseDate();
+            else
+                return inflationPeriod(t->referenceDate() - t->observationLag(), t->frequency()).first;
         }
         // value at reference date
-        static Rate initialValue(const ZeroInflationTermStructure* t) {
-            return t->baseRate();
+        static Rate initialValue(const ZeroInflationTermStructure*) {
+            // this will be overwritten during bootstrap
+            return detail::avgInflation;
         }
 
         // guesses
@@ -61,35 +65,31 @@ namespace QuantLib {
             if (validData) // previous iteration value
                 return c->data()[i];
 
-            if (i==1) // first pillar
-                return detail::avgInflation;
-
-            // could/should extrapolate
             return detail::avgInflation;
         }
 
         // constraints
         template <class C>
-        static Rate minValueAfter(Size i,
+        static Rate minValueAfter(Size,
                                   const C* c,
                                   bool validData,
                                   Size) // firstAliveHelper
         {
             if (validData) {
                 Rate r = *(std::min_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r*2.0 : r/2.0;
+                return r<0.0 ? Real(r*2.0) : r/2.0;
             }
             return -detail::maxInflation;
         }
         template <class C>
-        static Rate maxValueAfter(Size i,
+        static Rate maxValueAfter(Size,
                                   const C* c,
                                   bool validData,
                                   Size) // firstAliveHelper
         {
             if (validData) {
                 Rate r = *(std::max_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r/2.0 : r*2.0;
+                return r<0.0 ? Real(r/2.0) : r*2.0;
             }
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.
@@ -101,6 +101,8 @@ namespace QuantLib {
                                 Rate level,
                                 Size i) {
             data[i] = level;
+            if (i==1)
+                data[0] = level; // the first point is updated as well
         }
         // upper bound for convergence loop
         // calibration is trivial, should be immediate
@@ -115,13 +117,18 @@ namespace QuantLib {
 
         // start of curve data
         static Date initialDate(const YoYInflationTermStructure* t) {
-            if (t->indexIsInterpolated()) {
+            QL_DEPRECATED_DISABLE_WARNING
+            if (t->hasExplicitBaseDate()) {
+                return t->baseDate();
+            } else if (t->indexIsInterpolated()) {
                 return t->referenceDate() - t->observationLag();
             } else {
                 return inflationPeriod(t->referenceDate() - t->observationLag(),
                                        t->frequency()).first;
             }
+            QL_DEPRECATED_ENABLE_WARNING
         }
+
         // value at reference date
         static Rate initialValue(const YoYInflationTermStructure* t) {
             return t->baseRate();
@@ -137,35 +144,31 @@ namespace QuantLib {
             if (validData) // previous iteration value
                 return c->data()[i];
 
-            if (i==1) // first pillar
-                return detail::avgInflation;
-        
-            // could/should extrapolate
             return detail::avgInflation;
         }
 
         // constraints
         template <class C>
-        static Rate minValueAfter(Size i,
+        static Rate minValueAfter(Size,
                                   const C* c,
                                   bool validData,
                                   Size) // firstAliveHelper
         {
             if (validData) {
                 Rate r = *(std::min_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r*2.0 : r/2.0;
+                return r<0.0 ? Real(r*2.0) : r/2.0;
             }
             return -detail::maxInflation;
         }
         template <class C>
-        static Rate maxValueAfter(Size i,
+        static Rate maxValueAfter(Size,
                                   const C* c,
                                   bool validData,
                                   Size) // firstAliveHelper
         {
             if (validData) {
                 Rate r = *(std::max_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r/2.0 : r*2.0;
+                return r<0.0 ? Real(r/2.0) : r*2.0;
             }
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.

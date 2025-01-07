@@ -84,7 +84,7 @@ namespace QuantLib {
         const Handle<YieldTermStructure>& riskFreeRate() const;
 
         // returns min, max and average error in volatility units
-        ext::tuple<Real, Real, Real> calibrationError() const;
+        std::tuple<Real, Real, Real> calibrationError() const;
 
         // returns the option price of the calibration type. In case
         // of CallPut it return the call option price
@@ -97,7 +97,7 @@ namespace QuantLib {
 
       private:
         typedef std::map<Time,
-            ext::tuple<
+            std::tuple<
                 Real,
                 ext::shared_ptr<Array>,
                 ext::shared_ptr<Interpolation> > > TimeValueCacheType;
@@ -116,11 +116,9 @@ namespace QuantLib {
         Real getCacheValue(
             Real strike, const TimeValueCacheType::const_iterator& f) const;
 
-        Disposable<Array>
-            getPriceSlice(Time t, Option::Type optionType) const;
+        Array getPriceSlice(Time t, Option::Type optionType) const;
 
-        Disposable<Array>
-            getLocalVolSlice(Time t, Option::Type optionType) const;
+        Array getLocalVolSlice(Time t, Option::Type optionType) const;
 
         CalibrationSet calibrationSet_;
         const Handle<Quote> spot_;

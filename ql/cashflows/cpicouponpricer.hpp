@@ -38,12 +38,10 @@ namespace QuantLib {
     */
     class CPICouponPricer : public InflationCouponPricer {
       public:
-        CPICouponPricer() = default;
+        explicit CPICouponPricer(Handle<YieldTermStructure> nominalTermStructure = Handle<YieldTermStructure>());
 
-        explicit CPICouponPricer(Handle<YieldTermStructure> nominalTermStructure);
-
-        CPICouponPricer(Handle<CPIVolatilitySurface> capletVol,
-                        Handle<YieldTermStructure> nominalTermStructure);
+        explicit CPICouponPricer(Handle<CPIVolatilitySurface> capletVol,
+                                 Handle<YieldTermStructure> nominalTermStructure = Handle<YieldTermStructure>());
 
         virtual Handle<CPIVolatilitySurface> capletVolatility() const{
             return capletVol_;
@@ -68,8 +66,9 @@ namespace QuantLib {
         void initialize(const InflationCoupon&) override;
         //@}
 
+        virtual Rate accruedRate(Date settlementDate) const;
 
-    protected:
+      protected:
         virtual Real optionletPrice(Option::Type optionType,
                                     Real effStrike) const;
 
@@ -84,14 +83,12 @@ namespace QuantLib {
         */
         virtual Real optionletPriceImp(Option::Type, Real strike,
                                        Real forward, Real stdDev) const;
-        virtual Rate adjustedFixing(Rate fixing = Null<Rate>()) const;
 
-        //! data
+        // data
         Handle<CPIVolatilitySurface> capletVol_;
         Handle<YieldTermStructure> nominalTermStructure_;
         const CPICoupon* coupon_;
         Real gearing_;
-        Spread spread_;
         Real discount_;
     };
     

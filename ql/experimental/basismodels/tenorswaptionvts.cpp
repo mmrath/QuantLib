@@ -24,6 +24,7 @@ FOR A PARTICULAR PURPOSE.  See the license for more details.
 
 #include <ql/experimental/basismodels/tenorswaptionvts.hpp>
 #include <ql/experimental/basismodels/swaptioncfs.hpp>
+#include <ql/instruments/vanillaswap.hpp>
 #include <ql/exercise.hpp>
 #include <ql/indexes/iborindex.hpp>
 #include <ql/math/rounding.hpp>
@@ -60,15 +61,15 @@ namespace QuantLib {
                                    volTS.baseIndex_->fixingCalendar(), ModifiedFollowing,
                                    Unadjusted, DateGeneration::Backward, false);
         // and swaps
-        ext::shared_ptr<VanillaSwap> baseSwap(new VanillaSwap(
+        auto baseSwap = ext::make_shared<VanillaSwap>(
             Swap::Payer, 1.0, baseFixedSchedule, 1.0, volTS.baseFixedDC_, baseFloatSchedule,
-            volTS.baseIndex_, 0.0, volTS.baseIndex_->dayCounter()));
-        ext::shared_ptr<VanillaSwap> targSwap(new VanillaSwap(
+            volTS.baseIndex_, 0.0, volTS.baseIndex_->dayCounter());
+        auto targSwap = ext::make_shared<VanillaSwap>(
             Swap::Payer, 1.0, baseFixedSchedule, 1.0, volTS.baseFixedDC_, targFloatSchedule,
-            volTS.targIndex_, 0.0, volTS.targIndex_->dayCounter()));
-        ext::shared_ptr<VanillaSwap> finlSwap(new VanillaSwap(
+            volTS.targIndex_, 0.0, volTS.targIndex_->dayCounter());
+        auto finlSwap = ext::make_shared<VanillaSwap>(
             Swap::Payer, 1.0, finlFixedSchedule, 1.0, volTS.targFixedDC_, targFloatSchedule,
-            volTS.targIndex_, 0.0, volTS.targIndex_->dayCounter()));
+            volTS.targIndex_, 0.0, volTS.targIndex_->dayCounter());
         // adding engines
         baseSwap->setPricingEngine(
             ext::shared_ptr<PricingEngine>(new DiscountingSwapEngine(volTS.discountCurve_)));
@@ -81,17 +82,17 @@ namespace QuantLib {
         swapRateTarg_ = targSwap->fairRate();
         swapRateFinl_ = finlSwap->fairRate();
         SwaptionCashFlows cfs(
-            ext::shared_ptr<Swaption>(new Swaption(
-                baseSwap, ext::shared_ptr<Exercise>(new EuropeanExercise(exerciseDate)))),
+            ext::make_shared<Swaption>(
+                baseSwap, ext::shared_ptr<Exercise>(new EuropeanExercise(exerciseDate))),
             volTS.discountCurve_);
         SwaptionCashFlows cf2(
-            ext::shared_ptr<Swaption>(new Swaption(
-                targSwap, ext::shared_ptr<Exercise>(new EuropeanExercise(exerciseDate)))),
+            ext::make_shared<Swaption>(
+                targSwap, ext::shared_ptr<Exercise>(new EuropeanExercise(exerciseDate))),
             volTS.discountCurve_);
         // calculate affine TSR model u and v
         // Sum tau_j   (fixed leg)
         Real sumTauj = 0.0;
-        for (double k : cfs.annuityWeights())
+        for (Real k : cfs.annuityWeights())
             sumTauj += k;
         // Sum tau_j (T_M - T_j)   (fixed leg)
         Real sumTaujDeltaT = 0.0;
@@ -100,7 +101,7 @@ namespace QuantLib {
                 cfs.annuityWeights()[k] * (cfs.fixedTimes().back() - cfs.fixedTimes()[k]);
         // Sum w_i   (float leg)
         Real sumWi = 0.0;
-        for (double k : cfs.floatWeights())
+        for (Real k : cfs.floatWeights())
             sumWi += k;
         // Sum w_i (T_N - T_i)    (float leg)
         Real sumWiDeltaT = 0.0;

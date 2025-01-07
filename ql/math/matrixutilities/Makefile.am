@@ -7,9 +7,11 @@ this_include_HEADERS = \
 	basisincompleteordered.hpp \
 	bicgstab.hpp \
 	choleskydecomposition.hpp \
+	expm.hpp \
 	factorreduction.hpp \
 	getcovariance.hpp \
 	gmres.hpp \
+	householder.hpp \
 	pseudosqrt.hpp \
 	qrdecomposition.hpp \
 	sparseilupreconditioner.hpp \
@@ -23,9 +25,11 @@ cpp_files = \
 	bicgstab.cpp \
 	basisincompleteordered.cpp \
 	choleskydecomposition.cpp \
+	expm.cpp \
 	factorreduction.cpp \
 	getcovariance.cpp \
 	gmres.cpp \
+	householder.cpp \
 	pseudosqrt.cpp \
 	qrdecomposition.cpp \
 	sparseilupreconditioner.cpp \

@@ -17,7 +17,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-/*! \file makeois.hpp
+/*! \file makearithmeticaverageois.hpp
     \brief Helper class to instantiate overnight indexed swaps.
 */
 
@@ -30,12 +30,13 @@
 
 namespace QuantLib {
 
-    //! helper class
-    /*! This class provides a more comfortable way
-        to instantiate arithemtic average overnight indexed swaps.
+    /*! \deprecated Use MakeOIS instead.
+                        Deprecated in version 1.36.
     */
-    class MakeArithmeticAverageOIS {
+    class [[deprecated("Use MakeOIS instead")]] MakeArithmeticAverageOIS {
       public:
+        QL_DEPRECATED_DISABLE_WARNING
+
         MakeArithmeticAverageOIS(const Period& swapTenor,
                 const ext::shared_ptr<OvernightIndex>& overnightIndex,
                 Rate fixedRate = Null<Rate>(),
@@ -75,26 +76,28 @@ namespace QuantLib {
         Rate fixedRate_;
         Period forwardStart_;
 
-        Natural settlementDays_;
+        Natural settlementDays_ = 2;
         Date effectiveDate_, terminationDate_;
         Calendar calendar_;
 
-        Frequency fixedLegPaymentFrequency_;
-        Frequency overnightLegPaymentFrequency_;
-        DateGeneration::Rule rule_;
-        bool endOfMonth_, isDefaultEOM_;
+        Frequency fixedLegPaymentFrequency_ = Annual;
+        Frequency overnightLegPaymentFrequency_ = Annual;
+        DateGeneration::Rule rule_ = DateGeneration::Backward;
+        bool endOfMonth_, isDefaultEOM_ = true;
 
-        bool byApprox_;
-        Real mrs_;
-        Real vol_;
+        bool byApprox_ = false;
+        Real mrs_ = 0.03;
+        Real vol_ = 0.00;
 
-        Swap::Type type_;
-        Real nominal_;
+        Swap::Type type_ = Swap::Payer;
+        Real nominal_ = 1.0;
 
-        Spread overnightSpread_;
+        Spread overnightSpread_ = 0.0;
         DayCounter fixedDayCount_;
 
         ext::shared_ptr<PricingEngine> engine_;
+
+        QL_DEPRECATED_ENABLE_WARNING
     };
 
 }

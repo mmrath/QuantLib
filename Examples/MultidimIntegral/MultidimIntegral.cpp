@@ -25,28 +25,18 @@ FOR A PARTICULAR PURPOSE.  See the license for more details.
 #include <ql/experimental/math/multidimquadrature.hpp>
 #include <ql/math/integrals/trapezoidintegral.hpp>
 #include <ql/patterns/singleton.hpp>
-#include <ql/functional.hpp>
-
-
+#include <functional>
 #include <iostream>
 #include <iomanip>
 
 using namespace QuantLib;
 using namespace std;
 
-#if defined(QL_ENABLE_SESSIONS)
-namespace QuantLib {
-
-    ThreadKey sessionId() { return {}; }
-
-}
-#endif
-
 // Correct value is: (e^{-.25} \sqrt{\pi})^{dimension}
 struct integrand {
     Real operator()(const std::vector<Real>& arg) const {
         Real sum = 1.;
-        for (double i : arg)
+        for (Real i : arg)
             sum *= std::exp(-i * i) * std::cos(i);
         return sum;
     }
@@ -62,7 +52,7 @@ int main() {
     Integrates the function above over several dimensions, the size of the 
     vector argument is the dimension one.
     Both algorithms are not really on the same stand since the quadrature 
-    will be incorrect to use if the integrand is not appropiately behaved. Over 
+    will be incorrect to use if the integrand is not appropriately behaved. Over 
     dimension 3 you might need to modify the points in the integral to retain a 
     sensible computing time.
     */
@@ -70,7 +60,7 @@ int main() {
     Real exactSol = std::pow(std::exp(-.25) * 
         std::sqrt(M_PI), static_cast<Real>(dimension));
 
-    ext::function<Real(const std::vector<Real>& arg)> f = integrand();
+    std::function<Real(const std::vector<Real>& arg)> f = integrand();
 
     #ifndef QL_PATCH_SOLARIS
     GaussianQuadMultidimIntegrator intg(dimension, 15);
@@ -78,10 +68,10 @@ int main() {
     Real valueQuad = intg(f);
     #endif
 
-    std::vector<ext::shared_ptr<Integrator> > integrals;
+    std::vector<ext::shared_ptr<Integrator>> integrals;
     for(Size i=0; i<dimension; i++)
         integrals.push_back(
-        ext::make_shared<TrapezoidIntegral<Default> >(1.e-4, 20));
+        ext::make_shared<TrapezoidIntegral<Default>>(1.e-4, 20));
     std::vector<Real> a_limits(integrals.size(), -4.);
     std::vector<Real> b_limits(integrals.size(), 4.);
     MultidimIntegral testIntg(integrals);

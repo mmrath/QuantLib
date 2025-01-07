@@ -38,6 +38,7 @@ namespace QuantLib {
     namespace detail {
         const Real avgRate = 0.05;
         const Real maxRate = 1.0;
+        const Real maxDF = 10.0;
     }
 
     //! Discount-curve traits
@@ -101,6 +102,18 @@ namespace QuantLib {
             return c->data()[i-1] * std::exp(detail::maxRate * dt);
         }
 
+        // possible constraints for global optimization
+        template <class C>
+        static Real minValueGlobal(Size i, const C* c, bool validData)
+        {
+            return 0;
+        }
+        template <class C>
+        static Real maxValueGlobal(Size i, const C* c, bool validData)
+        {
+            return detail::maxDF;
+        }
+
         // root-finding update
         static void updateGuess(std::vector<Real>& data,
                                 Real discount,
@@ -159,7 +172,7 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::min_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r*2.0 : r/2.0;
+                return r<0.0 ? Real(r*2.0) : Real(r/2.0);
             }
             // no constraints.
             // We choose as min a value very unlikely to be exceeded.
@@ -173,10 +186,22 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::max_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r/2.0 : r*2.0;
+                return r<0.0 ? Real(r/2.0) : Real(r*2.0);
             }
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.
+            return detail::maxRate;
+        }
+
+        // possible constraints for global optimization
+        template <class C>
+        static Real minValueGlobal(Size i, const C* c, bool validData)
+        {
+            return -detail::maxRate;
+        }
+        template <class C>
+        static Real maxValueGlobal(Size i, const C* c, bool validData)
+        {
             return detail::maxRate;
         }
 
@@ -240,7 +265,7 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::min_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r*2.0 : r/2.0;
+                return r<0.0 ? Real(r*2.0) : Real(r/2.0);
             }
             // no constraints.
             // We choose as min a value very unlikely to be exceeded.
@@ -254,10 +279,22 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::max_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r/2.0 : r*2.0;
+                return r<0.0 ? Real(r/2.0) : Real(r*2.0);
             }
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.
+            return detail::maxRate;
+        }
+
+        // possible constraints for global optimization
+        template <class C>
+        static Real minValueGlobal(Size i, const C* c, bool validData)
+        {
+            return -detail::maxRate;
+        }
+        template <class C>
+        static Real maxValueGlobal(Size i, const C* c, bool validData)
+        {
             return detail::maxRate;
         }
 
@@ -321,14 +358,13 @@ namespace QuantLib {
             Real result;
             if (validData) {
                 Real r = *(std::min_element(c->data().begin(), c->data().end()));
-                result = r<0.0 ? r*2.0 : r/2.0;
+                result = r<0.0 ? Real(r*2.0) : r/2.0;
             } else {
                 // no constraints.
                 // We choose as min a value very unlikely to be exceeded.
                 result = -detail::maxRate;
             }
-            Real t = c->timeFromReference(c->dates()[i]);
-            return std::max(result, -1.0 / t + 1E-8);
+            return std::max(result, -1.0 / c->times()[i] + 1E-8);
         }
         template <class C>
         static Real maxValueAfter(Size,
@@ -338,10 +374,22 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::max_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r/2.0 : r*2.0;
+                return r<0.0 ? Real(r/2.0) : r*2.0;
             }
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.
+            return detail::maxRate;
+        }
+
+        // possible constraints for global optimization
+        template <class C>
+        static Real minValueGlobal(Size i, const C* c, bool validData)
+        {
+            return std::max(-detail::maxRate, -1.0 / c->times()[i] + 1E-8);
+        }
+        template <class C>
+        static Real maxValueGlobal(Size i, const C* c, bool validData)
+        {
             return detail::maxRate;
         }
 

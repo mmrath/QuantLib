@@ -37,14 +37,11 @@ namespace QuantLib {
         const Integer hPoints = nPoints/2;
         const bool isEven = (nPoints == 2*hPoints);
 
-        const ext::shared_ptr<FdmLinearOpLayout> layout = mesher->layout();
-        const FdmLinearOpIterator endIter = layout->end();
-
         Array xValues = mesher->locations(direction);
         std::set<Real> tmp(xValues.begin(), xValues.end());
         xValues = Array(tmp.begin(), tmp.end()); //unique vector
 
-        const Integer nx(layout->dim()[direction]);
+        const Integer nx(mesher->layout()->dim()[direction]);
 
         QL_REQUIRE(Integer(xValues.size()) == nx,
             "inconsistent set of grid values in direction " << direction);
@@ -53,9 +50,9 @@ namespace QuantLib {
              "inconsistent number of points");
 
         Array xOffsets(nPoints);
-        const ext::function<Real(Real)> emptyFct;
+        const std::function<Real(Real)> emptyFct;
 
-        for (FdmLinearOpIterator iter = layout->begin(); iter!=endIter; ++iter) {
+        for (const auto& iter : *mesher->layout()) {
             const auto ix = Integer(iter.coordinates()[direction]);
             const Integer offset = std::max(0, hPoints - ix)
                 - std::max(0, hPoints - (nx-((isEven)? 0 : 1) - ix));
@@ -72,22 +69,20 @@ namespace QuantLib {
 
             const Size i = iter.index();
             for (Integer j=0; j < nPoints; ++j) {
-                const Size k = layout->neighbourhood(iter, direction, ilx - ix + j);
+                const Size k = mesher->layout()->neighbourhood(iter, direction, ilx - ix + j);
 
                 m_(i, k) = weights[j];
             }
         }
     }
 
-    Disposable<NthOrderDerivativeOp::array_type>
-    NthOrderDerivativeOp::apply(const array_type& r) const {
+    NthOrderDerivativeOp::array_type NthOrderDerivativeOp::apply(const array_type& r) const {
         return prod(m_, r);
     }
 
 
-    Disposable<SparseMatrix> NthOrderDerivativeOp::toMatrix() const {
-        SparseMatrix tmp(m_);
-        return tmp;
+    SparseMatrix NthOrderDerivativeOp::toMatrix() const {
+        return m_;
     }
 
 }

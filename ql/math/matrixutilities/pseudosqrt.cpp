@@ -85,7 +85,7 @@ namespace QuantLib {
             : size_(targetMatrix.rows()), lowerDiagonal_(lowerDiagonal),
               targetMatrix_(targetMatrix), targetVariance_(std::move(targetVariance)),
               currentRoot_(size_, size_), tempMatrix_(size_, size_), currentMatrix_(size_, size_) {}
-            Disposable<Array> values(const Array&) const override {
+            Array values(const Array&) const override {
                 QL_FAIL("values method not implemented");
             }
             Real value(const Array& x) const override {
@@ -137,9 +137,9 @@ namespace QuantLib {
         };
 
         // Optimization function for hypersphere and lower-diagonal algorithm
-        Disposable<Matrix> hypersphereOptimize(const Matrix& targetMatrix,
-                                               const Matrix& currentRoot,
-                                               const bool lowerDiagonal) {
+        Matrix hypersphereOptimize(const Matrix& targetMatrix,
+                                   const Matrix& currentRoot,
+                                   const bool lowerDiagonal) {
             Size i,j,k,size = targetMatrix.rows();
             Matrix result(currentRoot);
             Array variance(size, 0);
@@ -278,7 +278,7 @@ namespace QuantLib {
         }
 
         // Take a matrix and make all the diagonal entries 1.
-        Disposable<Matrix> projectToUnitDiagonalMatrix(const Matrix& M) {
+        Matrix projectToUnitDiagonalMatrix(const Matrix& M) {
             Size size = M.rows();
             QL_REQUIRE(size == M.columns(),
                        "matrix not square");
@@ -291,7 +291,7 @@ namespace QuantLib {
         }
 
         // Take a matrix and make all the eigenvalues non-negative
-        Disposable<Matrix> projectToPositiveSemidefiniteMatrix(Matrix& M) {
+        Matrix projectToPositiveSemidefiniteMatrix(Matrix& M) {
             Size size = M.rows();
             QL_REQUIRE(size == M.columns(),
                        "matrix not square");
@@ -308,8 +308,7 @@ namespace QuantLib {
 
         // implementation of the Higham algorithm to find the nearest
         // correlation matrix.
-        Disposable<Matrix>
-        highamImplementation(const Matrix& A, const Size maxIterations, const Real& tolerance) {
+        Matrix highamImplementation(const Matrix& A, const Size maxIterations, const Real& tolerance) {
 
             Size size = A.rows();
             Matrix R, Y(A), X(A), deltaS(size, size, 0.0);
@@ -345,7 +344,7 @@ namespace QuantLib {
     }
 
 
-    Disposable<Matrix> pseudoSqrt(const Matrix& matrix, SalvagingAlgorithm::Type sa) {
+    Matrix pseudoSqrt(const Matrix& matrix, SalvagingAlgorithm::Type sa) {
         Size size = matrix.rows();
 
         #if defined(QL_EXTRA_SAFETY_CHECKS)
@@ -417,6 +416,33 @@ namespace QuantLib {
               result = CholeskyDecomposition(result, true);
             }
             break;
+          case SalvagingAlgorithm::Principal: {
+              QL_REQUIRE(jd.eigenvalues().back()>=-10*QL_EPSILON,
+                         "negative eigenvalue(s) ("
+                         << std::scientific << jd.eigenvalues().back()
+                         << ")");
+
+              Array sqrtEigenvalues(size);
+              std::transform(
+                  jd.eigenvalues().begin(), jd.eigenvalues().end(),
+                  sqrtEigenvalues.begin(),
+                  [](Real lambda) -> Real {
+                      return std::sqrt(std::max<Real>(lambda, 0.0));
+                  }
+              );
+
+              for (Size i=0; i < size; ++i)
+                  std::transform(
+                       sqrtEigenvalues.begin(), sqrtEigenvalues.end(),
+                       jd.eigenvectors().row_begin(i),
+                       diagonal.column_begin(i),
+                       std::multiplies<>()
+                   );
+
+              result = jd.eigenvectors()*diagonal;
+              result = 0.5*(result + transpose(result));
+            }
+            break;
           default:
             QL_FAIL("unknown salvaging algorithm");
         }
@@ -425,10 +451,10 @@ namespace QuantLib {
     }
 
 
-    Disposable<Matrix> rankReducedSqrt(const Matrix& matrix,
-                                       Size maxRank,
-                                       Real componentRetainedPercentage,
-                                       SalvagingAlgorithm::Type sa) {
+    Matrix rankReducedSqrt(const Matrix& matrix,
+                           Size maxRank,
+                           Real componentRetainedPercentage,
+                           SalvagingAlgorithm::Type sa) {
         Size size = matrix.rows();
 
         #if defined(QL_EXTRA_SAFETY_CHECKS)

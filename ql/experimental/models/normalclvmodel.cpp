@@ -24,7 +24,6 @@
 #include <ql/experimental/models/normalclvmodel.hpp>
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/math/distributions/normaldistribution.hpp>
-#include <ql/math/functional.hpp>
 #include <ql/math/integrals/gaussianquadratures.hpp>
 #include <ql/math/interpolations/linearinterpolation.hpp>
 #include <ql/math/solvers1d/brent.hpp>
@@ -46,7 +45,7 @@ namespace QuantLib {
     : x_(M_SQRT2 * GaussHermiteIntegration(lagrangeOrder).x()),
       sigma_((pMax != Null<Real>()) ?
                  x_.back() / InverseCumulativeNormal()(pMax) :
-                 (pMin != Null<Real>()) ? x_.front() / InverseCumulativeNormal()(pMin) : 1.0),
+                 (pMin != Null<Real>()) ? x_.front() / InverseCumulativeNormal()(pMin) : Real(1.0)),
       bsProcess_(bsProcess), ouProcess_(std::move(ouProcess)), maturityDates_(maturityDates),
       rndCalculator_(ext::make_shared<GBSMRNDCalculator>(bsProcess)),
       maturityTimes_(maturityDates.size()) {
@@ -70,7 +69,7 @@ namespace QuantLib {
         return rndCalculator_->invcdf(q, bsProcess_->time(d));
     }
 
-    Disposable<Array> NormalCLVModel::collocationPointsX(const Date& d) const {
+    Array NormalCLVModel::collocationPointsX(const Date& d) const {
         const Time t = bsProcess_->time(d);
 
         const Real expectation
@@ -81,7 +80,7 @@ namespace QuantLib {
         return expectation + stdDeviation*x_;
     }
 
-    Disposable<Array> NormalCLVModel::collocationPointsY(const Date& d) const {
+    Array NormalCLVModel::collocationPointsY(const Date& d) const {
         Array s(x_.size());
 
         CumulativeNormalDistribution N;
@@ -93,7 +92,7 @@ namespace QuantLib {
     }
 
 
-    ext::function<Real(Time, Real)> NormalCLVModel::g() const {
+    std::function<Real(Time, Real)> NormalCLVModel::g() const {
         calculate();
         return g_;
     }
@@ -133,6 +132,6 @@ namespace QuantLib {
     }
 
     void NormalCLVModel::performCalculations() const {
-        g_ = ext::function<Real(Time, Real)>(MappingFunction(*this));
+        g_ = std::function<Real(Time, Real)>(MappingFunction(*this));
     }
 }

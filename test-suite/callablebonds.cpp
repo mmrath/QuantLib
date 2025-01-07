@@ -2,7 +2,7 @@
 
 /*
  Copyright (C) 2018 StatPro Italia srl
- Copyright (C) 2021 Ralf Konrad Eckel
+ Copyright (C) 2021, 2022 Ralf Konrad Eckel
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -18,84 +18,84 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "callablebonds.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/experimental/callablebonds/callablebond.hpp>
 #include <ql/experimental/callablebonds/treecallablebondengine.hpp>
+#include <ql/experimental/callablebonds/blackcallablebondengine.hpp>
 #include <ql/instruments/bonds/zerocouponbond.hpp>
 #include <ql/instruments/bonds/fixedratebond.hpp>
 #include <ql/pricingengines/bond/discountingbondengine.hpp>
 #include <ql/time/daycounters/thirty360.hpp>
 #include <ql/time/daycounters/actual365fixed.hpp>
+#include <ql/time/calendars/nullcalendar.hpp>
 #include <ql/time/calendars/target.hpp>
 #include <ql/time/calendars/unitedstates.hpp>
 #include <ql/time/schedule.hpp>
 #include <ql/termstructures/yield/flatforward.hpp>
 #include <ql/models/shortrate/onefactormodels/hullwhite.hpp>
-#include <boost/make_shared.hpp>
+#include <ql/shared_ptr.hpp>
 #include <iomanip>
 
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-namespace {
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
 
-    struct Globals {
-        // global data
-        Date today, settlement;
-        Calendar calendar;
-        DayCounter dayCounter;
-        BusinessDayConvention rollingConvention;
+BOOST_AUTO_TEST_SUITE(CallableBondTests)
 
-        RelinkableHandle<YieldTermStructure> termStructure;
-        RelinkableHandle<ShortRateModel> model;
+struct Globals {
+    // global data
+    Date today, settlement;
+    Calendar calendar;
+    DayCounter dayCounter;
+    BusinessDayConvention rollingConvention;
 
-        SavedSettings backup;
+    RelinkableHandle<YieldTermStructure> termStructure;
+    RelinkableHandle<ShortRateModel> model;
 
-        Date issueDate() const {
-            // ensure that we're in mid-coupon
-            return calendar.adjust(today - 100*Days);
-        }
+    Date issueDate() const {
+        // ensure that we're in mid-coupon
+        return calendar.adjust(today - 100*Days);
+    }
 
-        Date maturityDate() const {
-            // ensure that we're in mid-coupon
-            return calendar.advance(issueDate(),10,Years);
-        }
+    Date maturityDate() const {
+        // ensure that we're in mid-coupon
+        return calendar.advance(issueDate(),10,Years);
+    }
 
-        std::vector<Date> evenYears() const {
-            std::vector<Date> dates;
-            for (Size i=2; i<10; i+=2)
-                dates.push_back(calendar.advance(issueDate(),i,Years));
-            return dates;
-        }
+    std::vector<Date> evenYears() const {
+        std::vector<Date> dates;
+        for (Size i=2; i<10; i+=2)
+            dates.push_back(calendar.advance(issueDate(),i,Years));
+        return dates;
+    }
 
-        std::vector<Date> oddYears() const {
-            std::vector<Date> dates;
-            for (Size i=1; i<10; i+=2)
-                dates.push_back(calendar.advance(issueDate(),i,Years));
-            return dates;
-        }
+    std::vector<Date> oddYears() const {
+        std::vector<Date> dates;
+        for (Size i=1; i<10; i+=2)
+            dates.push_back(calendar.advance(issueDate(),i,Years));
+        return dates;
+    }
 
-        template <class R>
-        ext::shared_ptr<YieldTermStructure> makeFlatCurve(const R& r) const {
-            return ext::shared_ptr<YieldTermStructure>(
+    template <class R>
+    ext::shared_ptr<YieldTermStructure> makeFlatCurve(const R& r) const {
+        return ext::shared_ptr<YieldTermStructure>(
                                   new FlatForward(settlement, r, dayCounter));
-        }
+    }
 
-        Globals() {
-            calendar = TARGET();
-            dayCounter = Actual365Fixed();
-            rollingConvention = ModifiedFollowing;
+    Globals() {
+        calendar = TARGET();
+        dayCounter = Actual365Fixed();
+        rollingConvention = ModifiedFollowing;
 
-            today = Date::todaysDate();
-            Settings::instance().evaluationDate() = today;
-            settlement = calendar.advance(today,2,Days);
-        }
-    };
+        today = Settings::instance().evaluationDate();
+        settlement = calendar.advance(today,2,Days);
+    }
+};
 
-}
 
-void CallableBondTest::testInterplay() {
+BOOST_AUTO_TEST_CASE(testInterplay) {
 
     BOOST_TEST_MESSAGE("Testing interplay of callability and puttability for callable bonds...");
 
@@ -132,7 +132,7 @@ void CallableBondTest::testInterplay() {
                                 vars.issueDate(), callabilities);
     bond.setPricingEngine(engine);
 
-    double expected = callabilities[0]->price().amount() *
+    Real expected = callabilities[0]->price().amount() *
                       vars.termStructure->discount(callabilities[0]->date()) /
                       vars.termStructure->discount(bond.settlementDate());
 
@@ -221,8 +221,7 @@ void CallableBondTest::testInterplay() {
             << "    difference:     " << bond.settlementValue()-expected);
 }
 
-
-void CallableBondTest::testConsistency() {
+BOOST_AUTO_TEST_CASE(testConsistency) {
 
     BOOST_TEST_MESSAGE("Testing consistency of callable bonds...");
 
@@ -298,8 +297,7 @@ void CallableBondTest::testConsistency() {
             << " (should be higher)");
 }
 
-
-void CallableBondTest::testObservability() {
+BOOST_AUTO_TEST_CASE(testObservability) {
 
     BOOST_TEST_MESSAGE("Testing observability of callable bonds...");
 
@@ -347,7 +345,7 @@ void CallableBondTest::testObservability() {
 
     bond.setPricingEngine(engine);
 
-    double originalValue = bond.NPV();
+    Real originalValue = bond.NPV();
 
     observable->setValue(0.04);
 
@@ -358,7 +356,7 @@ void CallableBondTest::testObservability() {
 
 }
 
-void CallableBondTest::testDegenerate() {
+BOOST_AUTO_TEST_CASE(testDegenerate) {
 
     BOOST_TEST_MESSAGE("Repricing bonds using degenerate callable bonds...");
 
@@ -400,7 +398,7 @@ void CallableBondTest::testDegenerate() {
 
     ext::shared_ptr<PricingEngine> discountingEngine =
         ext::make_shared<DiscountingBondEngine>(vars.termStructure);
-    
+
     zeroCouponBond.setPricingEngine(discountingEngine);
     couponBond.setPricingEngine(discountingEngine);
 
@@ -471,7 +469,7 @@ void CallableBondTest::testDegenerate() {
             << "    expected:   " << couponBond.cleanPrice());
 }
 
-void CallableBondTest::testCached() {
+BOOST_AUTO_TEST_CASE(testCached) {
 
     BOOST_TEST_MESSAGE("Testing callable-bond value against cached values...");
 
@@ -523,7 +521,7 @@ void CallableBondTest::testCached() {
     double tolerance = 1.0e-8;
 
     double storedPrice1 = 110.60975477;
-    CallableFixedRateBond bond1(3, 100.0, schedule,
+    CallableFixedRateBond bond1(3, 10000.0, schedule,
                                 coupons, Thirty360(Thirty360::BondBasis),
                                 vars.rollingConvention,
                                 100.0, vars.issueDate(),
@@ -538,7 +536,7 @@ void CallableBondTest::testCached() {
             << "    expected:   " << storedPrice1);
 
     double storedPrice2 = 115.16559362;
-    CallableFixedRateBond bond2(3, 100.0, schedule,
+    CallableFixedRateBond bond2(3, 10000.0, schedule,
                                 coupons, Thirty360(Thirty360::BondBasis),
                                 vars.rollingConvention,
                                 100.0, vars.issueDate(),
@@ -553,7 +551,7 @@ void CallableBondTest::testCached() {
             << "    expected:   " << storedPrice2);
 
     double storedPrice3 = 110.97509625;
-    CallableFixedRateBond bond3(3, 100.0, schedule,
+    CallableFixedRateBond bond3(3, 10000.0, schedule,
                                 coupons, Thirty360(Thirty360::BondBasis),
                                 vars.rollingConvention,
                                 100.0, vars.issueDate(),
@@ -570,7 +568,7 @@ void CallableBondTest::testCached() {
 
 }
 
-void CallableBondTest::testSnappingExerciseDate2ClosestCouponDate() {
+BOOST_AUTO_TEST_CASE(testSnappingExerciseDate2ClosestCouponDate) {
 
     BOOST_TEST_MESSAGE("Testing snap of callability dates to the closest coupon date...");
 
@@ -578,30 +576,29 @@ void CallableBondTest::testSnappingExerciseDate2ClosestCouponDate() {
      * https://github.com/lballabio/QuantLib/issues/930#issuecomment-853886024 */
 
     auto today = Date(18, May, 2021);
-    auto calendar = UnitedStates(UnitedStates::FederalReserve);
 
-    SavedSettings backup;
     Settings::instance().evaluationDate() = today;
 
+    auto calendar = UnitedStates(UnitedStates::FederalReserve);
+    auto accrualDCC = Thirty360(Thirty360::Convention::USA);
+    auto frequency = Semiannual;
+    RelinkableHandle<YieldTermStructure> termStructure;
+    termStructure.linkTo(ext::make_shared<FlatForward>(today, 0.02, Actual365Fixed()));
 
-    auto makeBonds = [&today, &calendar](Date callDate,
-                                         ext::shared_ptr<FixedRateBond>& fixedRateBond,
-                                         ext::shared_ptr<CallableFixedRateBond>& callableBond) {
-        RelinkableHandle<YieldTermStructure> termStructure;
-        termStructure.linkTo(ext::make_shared<FlatForward>(today, 0.02, Actual365Fixed()));
-
+    auto makeBonds = [&calendar, &accrualDCC, frequency,
+                      &termStructure](Date callDate, ext::shared_ptr<FixedRateBond>& fixedRateBond,
+                                      ext::shared_ptr<CallableFixedRateBond>& callableBond) {
         auto settlementDays = 2;
         auto settlementDate = Date(20, May, 2021);
         auto coupon = 0.05;
         auto faceAmount = 100.00;
         auto redemption = faceAmount;
-        auto accrualDCC = Thirty360(Thirty360::Convention::USA);
         auto maturityDate = Date(14, Feb, 2026);
         auto issueDate = settlementDate - 2 * 366 * Days;
         Schedule schedule = MakeSchedule()
                                 .from(issueDate)
                                 .to(maturityDate)
-                                .withFrequency(Semiannual)
+                                .withFrequency(frequency)
                                 .withCalendar(calendar)
                                 .withConvention(Unadjusted)
                                 .withTerminationDateConvention(Unadjusted)
@@ -629,14 +626,16 @@ void CallableBondTest::testSnappingExerciseDate2ClosestCouponDate() {
         auto newFixedRateBond = ext::make_shared<FixedRateBond>(
             settlementDays, faceAmount, fixedRateBondSchedule, fixedRateBondCoupons, accrualDCC,
             BusinessDayConvention::Following, redemption, issueDate);
-        auto discountigEngine = ext::make_shared<DiscountingBondEngine>(termStructure);
-        newFixedRateBond->setPricingEngine(discountigEngine);
+        auto discountingEngine = ext::make_shared<DiscountingBondEngine>(termStructure);
+        newFixedRateBond->setPricingEngine(discountingEngine);
 
         fixedRateBond.swap(newFixedRateBond);
     };
 
     auto initialCallDate = Date(14, Feb, 2022);
-    auto tolerance = 1e-10;
+    Real tolerance = 1e-10;
+    Real prevOAS = 0.0266;
+    Real expectedOasStep = 0.00005;
 
     ext::shared_ptr<CallableFixedRateBond> callableBond;
     ext::shared_ptr<FixedRateBond> fixedRateBond;
@@ -655,18 +654,245 @@ void CallableBondTest::testSnappingExerciseDate2ClosestCouponDate() {
                             << "    expected:   " << npvFixedRateBond << " +/- " << std::scientific
                             << std::setprecision(1) << tolerance);
             }
+
+            Real cleanPrice = callableBond->cleanPrice() - 2.0;
+            Real oas = callableBond->OAS(cleanPrice, termStructure, accrualDCC,
+                                         QuantLib::Continuous, frequency);
+            if (prevOAS - oas < expectedOasStep) {
+                BOOST_ERROR("failed to get expected change in OAS at "
+                            << io::iso_date(callDate) << ":\n"
+                            << std::setprecision(7) << "    calculated: " << oas << "\n"
+                            << "      previous: " << prevOAS << "\n"
+                            << "  should at least change by " << expectedOasStep);
+            }
+            prevOAS = oas;
         }
     }
 }
 
-test_suite* CallableBondTest::suite() {
-    auto* suite = BOOST_TEST_SUITE("Convertible-bond tests");
-    suite->add(QUANTLIB_TEST_CASE(&CallableBondTest::testConsistency));
-    suite->add(QUANTLIB_TEST_CASE(&CallableBondTest::testInterplay));
-    suite->add(QUANTLIB_TEST_CASE(&CallableBondTest::testObservability));
-    suite->add(QUANTLIB_TEST_CASE(&CallableBondTest::testDegenerate));
-    suite->add(QUANTLIB_TEST_CASE(&CallableBondTest::testCached));
-    suite->add(QUANTLIB_TEST_CASE(&CallableBondTest::testSnappingExerciseDate2ClosestCouponDate));
-    return suite;
+BOOST_AUTO_TEST_CASE(testBlackEngine) {
+
+    BOOST_TEST_MESSAGE("Testing Black engine for European callable bonds...");
+
+    Globals vars;
+
+    vars.today = Date(20, September, 2022);
+    Settings::instance().evaluationDate() = vars.today;
+    vars.settlement = vars.calendar.advance(vars.today, 3, Days);
+
+    vars.termStructure.linkTo(vars.makeFlatCurve(0.03));
+
+    CallabilitySchedule callabilities = {
+        ext::make_shared<Callability>(
+                         Bond::Price(100.0, Bond::Price::Clean),
+                         Callability::Call,
+                         vars.calendar.advance(vars.issueDate(),4,Years))
+    };
+
+    CallableZeroCouponBond bond(3, 10000.0, vars.calendar,
+                                vars.maturityDate(), Thirty360(Thirty360::BondBasis),
+                                vars.rollingConvention, 100.0,
+                                vars.issueDate(), callabilities);
+
+    bond.setPricingEngine(ext::make_shared<BlackCallableZeroCouponBondEngine>(
+        Handle<Quote>(ext::make_shared<SimpleQuote>(0.3)), vars.termStructure));
+
+    Real expected = 74.52915084;
+    Real calculated = bond.cleanPrice();
+
+    if (std::fabs(calculated - expected) > 1.0e-4)
+        BOOST_ERROR(
+            "failed to reproduce cached price:\n"
+            << std::setprecision(5)
+            << "    calculated NPV: " << calculated << "\n"
+            << "    expected:       " << expected << "\n"
+            << "    difference:     " << calculated - expected);
 }
 
+BOOST_AUTO_TEST_CASE(testImpliedVol) {
+
+    BOOST_TEST_MESSAGE("Testing implied-volatility calculation for callable bonds...");
+
+    Globals vars;
+
+    vars.termStructure.linkTo(vars.makeFlatCurve(0.03));
+
+    Schedule schedule =
+        MakeSchedule()
+        .from(vars.issueDate())
+        .to(vars.maturityDate())
+        .withCalendar(vars.calendar)
+        .withFrequency(Semiannual)
+        .withConvention(vars.rollingConvention)
+        .withRule(DateGeneration::Backward);
+
+    std::vector<Rate> coupons = { 0.01 };
+
+    CallabilitySchedule callabilities = {
+        ext::make_shared<Callability>(
+                         Bond::Price(100.0, Bond::Price::Clean),
+                         Callability::Call,
+                         schedule.at(8))
+    };
+
+    CallableFixedRateBond bond(3, 10000.0, schedule,
+                               coupons, Thirty360(Thirty360::BondBasis),
+                               vars.rollingConvention,
+                               100.0, vars.issueDate(),
+                               callabilities);
+
+    auto targetPrice = Bond::Price(78.50, Bond::Price::Dirty);
+    Real volatility = bond.impliedVolatility(targetPrice,
+                                             vars.termStructure,
+                                             1e-8,  // accuracy
+                                             200,   // max evaluations
+                                             1e-4,  // min vol
+                                             1.0);  // max vol
+
+    bond.setPricingEngine(ext::make_shared<BlackCallableZeroCouponBondEngine>(
+        Handle<Quote>(ext::make_shared<SimpleQuote>(volatility)), vars.termStructure));
+
+    if (std::fabs(bond.dirtyPrice() - targetPrice.amount()) > 1.0e-4)
+        BOOST_ERROR(
+            "failed to reproduce target dirty price with implied volatility:\n"
+            << std::setprecision(5)
+            << "    calculated price: " << bond.dirtyPrice() << "\n"
+            << "    expected:         " << targetPrice.amount() << "\n"
+            << "    difference:       " << bond.dirtyPrice() - targetPrice.amount());
+
+    targetPrice = Bond::Price(78.50, Bond::Price::Clean);
+    volatility = bond.impliedVolatility(targetPrice,
+                                        vars.termStructure,
+                                        1e-8,  // accuracy
+                                        200,   // max evaluations
+                                        1e-4,  // min vol
+                                        1.0);  // max vol
+
+    bond.setPricingEngine(ext::make_shared<BlackCallableZeroCouponBondEngine>(
+        Handle<Quote>(ext::make_shared<SimpleQuote>(volatility)), vars.termStructure));
+
+    if (std::fabs(bond.cleanPrice() - targetPrice.amount()) > 1.0e-4)
+        BOOST_ERROR(
+            "failed to reproduce target clean price with implied volatility:\n"
+            << std::setprecision(5)
+            << "    calculated price: " << bond.cleanPrice() << "\n"
+            << "    expected:         " << targetPrice.amount() << "\n"
+            << "    difference:       " << bond.cleanPrice() - targetPrice.amount());
+}
+
+BOOST_AUTO_TEST_CASE(testCallableFixedRateBondWithArbitrarySchedule) {
+    BOOST_TEST_MESSAGE("Testing callable fixed-rate bond with arbitrary schedule...");
+
+    Globals vars;
+
+    Natural settlementDays = 2;
+    vars.today = Date(10, Jan, 2020);
+    Settings::instance().evaluationDate() = vars.today;
+    vars.settlement = vars.calendar.advance(vars.today, settlementDays, Days);
+
+    vars.termStructure.linkTo(vars.makeFlatCurve(0.03));
+    vars.model.linkTo(ext::make_shared<HullWhite>(vars.termStructure));
+
+    Size timeSteps = 240;
+    ext::shared_ptr<PricingEngine> engine = ext::make_shared<TreeCallableFixedRateBondEngine>(
+        *(vars.model), timeSteps, vars.termStructure);
+
+    std::vector<Date> dates(4);
+    dates[0] = Date(20, February, 2020);
+    dates[1] = Date(15, Aug, 2020);
+    dates[2] = Date(25, Sep, 2021);
+    dates[3] = Date(27, Jan, 2022);
+
+    Schedule schedule(dates, vars.calendar, Unadjusted);
+
+    CallabilitySchedule callabilities = {
+        ext::make_shared<Callability>(
+                         Bond::Price(100.0, Bond::Price::Clean),
+                         Callability::Call,
+                         dates[2])
+    };
+
+    std::vector<Rate> coupons(1, 0.06);
+
+    CallableFixedRateBond callableBond(settlementDays, 100.0, schedule, coupons, vars.dayCounter,
+                                       vars.rollingConvention, 100.0, vars.issueDate(), callabilities);
+    callableBond.setPricingEngine(engine);
+
+    BOOST_CHECK_NO_THROW(callableBond.cleanPrice());
+}
+
+BOOST_AUTO_TEST_CASE(testCallableBondOasWithDifferentNotinals) {
+    BOOST_TEST_MESSAGE("Testing callable fixed-rate bond OAS with different notionals...");
+
+    Globals vars;
+
+    Natural settlementDays = 2;
+    vars.today = Date(10, Jan, 2020);
+    Settings::instance().evaluationDate() = vars.today;
+    vars.settlement = vars.calendar.advance(vars.today, settlementDays, Days);
+
+    std::vector<Rate> coupons(1, 0.055);
+    DayCounter dc = vars.dayCounter;
+    Compounding compounding = Compounded;
+    Frequency frequency = Semiannual;
+
+    vars.termStructure.linkTo(vars.makeFlatCurve(0.03));
+    vars.model.linkTo(ext::make_shared<HullWhite>(vars.termStructure));
+
+    Size timeSteps = 240;
+    ext::shared_ptr<PricingEngine> engine = ext::make_shared<TreeCallableFixedRateBondEngine>(
+        *(vars.model), timeSteps, vars.termStructure);
+
+    Schedule schedule = MakeSchedule()
+                            .from(vars.issueDate())
+                            .to(vars.maturityDate())
+                            .withCalendar(vars.calendar)
+                            .withFrequency(frequency)
+                            .withConvention(vars.rollingConvention)
+                            .withRule(DateGeneration::Backward);
+
+    Date firstCallDate = schedule.at(schedule.size() - 5);
+    Date lastCallDate = schedule.at(schedule.size() - 2);
+    auto callability_dates = schedule.after(firstCallDate);
+    callability_dates = callability_dates.until(lastCallDate);
+
+    CallabilitySchedule callSchedule;
+    for (auto call_date : callability_dates) {
+        Bond::Price call_price(100, Bond::Price::Clean);
+        callSchedule.push_back(
+            ext::make_shared<Callability>(call_price, Callability::Call, call_date));
+    }
+
+
+    CallableFixedRateBond callableBond100(settlementDays, 100.0, schedule, coupons, vars.dayCounter,
+                                          vars.rollingConvention, 100.0, vars.issueDate(),
+                                          callSchedule);
+    callableBond100.setPricingEngine(engine);
+
+    CallableFixedRateBond callableBond25(settlementDays, 25.0, schedule, coupons, vars.dayCounter,
+                                         vars.rollingConvention, 100.0, vars.issueDate(),
+                                         callSchedule);
+    callableBond25.setPricingEngine(engine);
+
+    Real cleanPrice = 96.0;
+    Real oas100 = callableBond100.OAS(cleanPrice, vars.termStructure, dc, compounding, frequency);
+    Real oas25 = callableBond25.OAS(cleanPrice, vars.termStructure, dc, compounding, frequency);
+    if (oas100 != oas25)
+        BOOST_ERROR("failed to reproduce equal OAS with different notionals:\n"
+                    << std::setprecision(2)
+                    << "    OAS(bps) with notional 100.0:   " << oas100 * 10000 << "\n"
+                    << "    OAS(bps) with notional 25.0:    " << oas25 * 10000 << "\n");
+
+    Real oas = 0.0300;
+    Real cleanPrice100 = callableBond100.cleanPriceOAS(oas, vars.termStructure, dc, compounding, frequency);
+    Real cleanPrice25 = callableBond25.cleanPriceOAS(oas, vars.termStructure, dc, compounding, frequency);
+    if (cleanPrice100 != cleanPrice25)
+        BOOST_ERROR("failed to reproduce equal clean price given OAS with different notionals:\n"
+                    << std::setprecision(2)
+                    << "    clean price with notional 100.0:   " << cleanPrice100 << "\n"
+                    << "    clean price with notional 25.0:    " << cleanPrice25 << "\n");
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE_END()

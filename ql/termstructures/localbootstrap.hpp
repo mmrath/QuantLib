@@ -53,7 +53,7 @@ namespace QuantLib {
           rateHelpersStart_(rateHelpersStart), rateHelpersEnd_(rateHelpersEnd) {}
 
         Real value(const Array& x) const override;
-        Disposable<Array> values(const Array& x) const override;
+        Array values(const Array& x) const override;
 
       private:
         Curve* curve_;
@@ -124,7 +124,7 @@ namespace QuantLib {
                    localisation_ << " required.");
 
         for (Size i=0; i<n; ++i){
-            ts_->registerWith(ts_->instruments_[i]);
+            ts_->registerWithObservables(ts_->instruments_[i]);
         }
     }
 
@@ -240,9 +240,8 @@ namespace QuantLib {
             EndCriteria::Type endType = solver.minimize(toSolve, endCriteria);
 
             // check the end criteria
-            QL_REQUIRE(endType == EndCriteria::StationaryFunctionAccuracy ||
-                       endType == EndCriteria::StationaryFunctionValue,
-                       "Unable to strip yieldcurve to required accuracy " );
+            QL_REQUIRE(EndCriteria::succeeded(endType),
+                       "Unable to strip yieldcurve to required accuracy: " << endType);
             ++iInst;
         } while ( iInst < nInsts );
         validCurve_ = true;
@@ -272,7 +271,7 @@ namespace QuantLib {
     }
 
     template <class Curve>
-    Disposable<Array> PenaltyFunction<Curve>::values(const Array& x) const {
+    Array PenaltyFunction<Curve>::values(const Array& x) const {
         Array::const_iterator guessIt = x.begin();
         Size i = initialIndex_;
         while (guessIt != x.end()) {

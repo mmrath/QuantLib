@@ -24,23 +24,14 @@
 #include <ql/experimental/math/fireflyalgorithm.hpp>
 #include <ql/experimental/math/hybridsimulatedannealing.hpp>
 #include <ql/experimental/math/particleswarmoptimization.hpp>
-#include <ql/functional.hpp>
 #include <ql/math/optimization/differentialevolution.hpp>
 #include <ql/math/optimization/simulatedannealing.hpp>
-#include <ql/tuple.hpp>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <utility>
 
 using namespace QuantLib;
-
-#if defined(QL_ENABLE_SESSIONS)
-namespace QuantLib {
-
-    ThreadKey sessionId() { return {}; }
-
-}
-#endif
 
 unsigned long seed = 127;
 
@@ -56,7 +47,7 @@ Real ackley(const Array& x) {
     //Minimum is found at 0
     Real p1 = 0.0, p2 = 0.0;
 
-    for (double i : x) {
+    for (Real i : x) {
         p1 += i * i;
         p2 += std::cos(M_TWOPI * i);
     }
@@ -65,7 +56,7 @@ Real ackley(const Array& x) {
     return M_E + 20.0 - 20.0*std::exp(p1)-std::exp(p2);
 }
 
-Disposable<Array> ackleyValues(const Array& x) {
+Array ackleyValues(const Array& x) {
     Array y(x.size());
     for (Size i = 0; i < x.size(); i++) {
         Real p1 = x[i] * x[i];
@@ -81,7 +72,7 @@ Real sphere(const Array& x) {
     return DotProduct(x, x);
 }
 
-Disposable<Array> sphereValues(const Array& x) {
+Array sphereValues(const Array& x) {
     Array y(x.size());
     for (Size i = 0; i < x.size(); i++) {
         y[i] = x[i]*x[i];
@@ -103,14 +94,14 @@ Real rosenbrock(const Array& x) {
 Real easom(const Array& x) {
     //Minimum is found at f(\pi, \pi, ...)
     Real p1 = 1.0, p2 = 0.0;
-    for (double i : x) {
+    for (Real i : x) {
         p1 *= std::cos(i);
         p2 += (i - M_PI) * (i - M_PI);
     }
     return -p1*std::exp(-p2);
 }
 
-Disposable<Array> easomValues(const Array& x) {
+Array easomValues(const Array& x) {
     Array y(x.size());
     for (Size i = 0; i < x.size(); i++) {
         Real p1 = std::cos(x[i]);
@@ -140,15 +131,15 @@ Real printFunction(Problem& p, const Array& x) {
 
 class TestFunction : public CostFunction {
 public:
-    typedef ext::function<Real(const Array&)> RealFunc;
-    typedef ext::function<Disposable<Array>(const Array&)> ArrayFunc;
+    typedef std::function<Real(const Array&)> RealFunc;
+    typedef std::function<Array(const Array&)> ArrayFunc;
     explicit TestFunction(RealFunc f, ArrayFunc fs = ArrayFunc())
     : f_(std::move(f)), fs_(std::move(fs)) {}
-    explicit TestFunction(Real (*f)(const Array&), Disposable<Array> (*fs)(const Array&) = nullptr)
+    explicit TestFunction(Real (*f)(const Array&), Array (*fs)(const Array&) = nullptr)
     : f_(f), fs_(fs) {}
     ~TestFunction() override = default;
     Real value(const Array& x) const override { return f_(x); }
-    Disposable<Array> values(const Array& x) const override {
+    Array values(const Array& x) const override {
         if(!fs_)
             throw std::runtime_error("Invalid function");
         return fs_(x);
@@ -198,10 +189,8 @@ void testFirefly() {
     Size agents = 150;
     Real vola = 1.5;
     Real intense = 1.0;
-    ext::shared_ptr<FireflyAlgorithm::Intensity> intensity =
-        ext::make_shared<ExponentialIntensity>(10.0, 1e-8, intense);
-    ext::shared_ptr<FireflyAlgorithm::RandomWalk> randomWalk =
-        ext::make_shared<LevyFlightWalk>(vola, 0.5, 1.0, seed);
+    auto intensity = ext::make_shared<ExponentialIntensity>(10.0, 1e-8, intense);
+    auto randomWalk = ext::make_shared<LevyFlightWalk>(vola, 0.5, 1.0, seed);
     std::cout << "Function eggholder, Agents: " << agents
             << ", Vola: " << vola << ", Intensity: " << intense << std::endl;
     TestFunction f(eggholder);
@@ -313,10 +302,8 @@ void testPSO(Size n){
     std::cout << "Function: rosenbrock, Dimensions: " << n
             << ", Agents: " << agents << ", K-neighbors: " << kneighbor
             << ", Threshold: " << threshold << std::endl;
-    ext::shared_ptr<ParticleSwarmOptimization::Topology> topology =
-        ext::make_shared<KNeighbors>(kneighbor);
-    ext::shared_ptr<ParticleSwarmOptimization::Inertia> inertia =
-        ext::make_shared<LevyFlightInertia>(1.5, threshold, seed);
+    auto topology = ext::make_shared<KNeighbors>(kneighbor);
+    auto inertia = ext::make_shared<LevyFlightInertia>(1.5, threshold, seed);
     TestFunction f(rosenbrock);
     ParticleSwarmOptimization pso(agents, topology, inertia, 2.05, 2.05, seed);
     EndCriteria ec(10000, 1000, 1.0e-8, 1.0e-8, 1.0e-8);
