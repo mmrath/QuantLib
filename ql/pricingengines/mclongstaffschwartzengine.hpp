@@ -30,7 +30,7 @@
 #include <ql/exercise.hpp>
 #include <ql/pricingengines/mcsimulation.hpp>
 #include <ql/methods/montecarlo/longstaffschwartzpathpricer.hpp>
-
+#include <ql/optional.hpp>
 
 namespace QuantLib {
 
@@ -80,8 +80,8 @@ namespace QuantLib {
                                   Size maxSamples,
                                   BigNatural seed,
                                   Size nCalibrationSamples = Null<Size>(),
-                                  boost::optional<bool> brownianBridgeCalibration = boost::none,
-                                  boost::optional<bool> antitheticVariateCalibration = boost::none,
+                                  ext::optional<bool> brownianBridgeCalibration = ext::nullopt,
+                                  ext::optional<bool> antitheticVariateCalibration = ext::nullopt,
                                   BigNatural seedCalibration = Null<Size>());
 
         void calculate() const override;
@@ -131,8 +131,8 @@ namespace QuantLib {
                                   Size maxSamples,
                                   BigNatural seed,
                                   Size nCalibrationSamples,
-                                  boost::optional<bool> brownianBridgeCalibration,
-                                  boost::optional<bool> antitheticVariateCalibration,
+                                  ext::optional<bool> brownianBridgeCalibration,
+                                  ext::optional<bool> antitheticVariateCalibration,
                                   BigNatural seedCalibration)
     : McSimulation<MC, RNG, S>(antitheticVariate, controlVariate), process_(std::move(process)),
       timeSteps_(timeSteps), timeStepsPerYear_(timeStepsPerYear), brownianBridge_(brownianBridge),
@@ -203,7 +203,7 @@ namespace QuantLib {
         this->results_.value = this->mcModel_->sampleAccumulator().mean();
         this->results_.additionalResults["exerciseProbability"] =
             this->pathPricer_->exerciseProbability();
-        if (RNG::allowsErrorEstimate) {
+        if constexpr (RNG::allowsErrorEstimate) {
             this->results_.errorEstimate =
                 this->mcModel_->sampleAccumulator().errorEstimate();
         }

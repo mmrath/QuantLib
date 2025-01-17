@@ -26,11 +26,12 @@
 #include <ql/cashflows/digitalcoupon.hpp>
 #include <ql/cashflows/digitaliborcoupon.hpp>
 #include <ql/cashflows/rangeaccrual.hpp>
-#include <ql/cashflows/subperiodcoupon.hpp>
+#include <ql/cashflows/multipleresetscoupon.hpp>
 #include <ql/experimental/coupons/cmsspreadcoupon.hpp>        /* internal */
 #include <ql/experimental/coupons/digitalcmsspreadcoupon.hpp> /* internal */
 #include <ql/pricingengines/blackformula.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
+#include <ql/optional.hpp>
 #include <utility>
 
 namespace QuantLib {
@@ -41,7 +42,7 @@ namespace QuantLib {
 
     IborCouponPricer::IborCouponPricer(
             Handle<OptionletVolatilityStructure> v,
-            boost::optional<bool> useIndexedCoupon)
+            ext::optional<bool> useIndexedCoupon)
         : capletVol_(std::move(v)),
           useIndexedCoupon_(useIndexedCoupon ?
                             *useIndexedCoupon :
@@ -117,22 +118,16 @@ namespace QuantLib {
 
         IborCouponPricer::initialize(coupon);
 
-        Handle<YieldTermStructure> rateCurve = index_->forwardingTermStructure();
+        const Handle<YieldTermStructure>& rateCurve = index_->forwardingTermStructure();
 
         if (rateCurve.empty()) {
             discount_ = Null<Real>(); // might not be needed, will be checked later
-            QL_DEPRECATED_DISABLE_WARNING
-            spreadLegValue_ = Null<Real>();
-            QL_DEPRECATED_ENABLE_WARNING
         } else {
             Date paymentDate = coupon_->date();
             if (paymentDate > rateCurve->referenceDate())
                 discount_ = rateCurve->discount(paymentDate);
             else
                 discount_ = 1.0;
-            QL_DEPRECATED_DISABLE_WARNING
-            spreadLegValue_ = spread_ * accrualPeriod_ * discount_;
-            QL_DEPRECATED_ENABLE_WARNING
         }
 
     }
@@ -207,9 +202,9 @@ namespace QuantLib {
             capletVolatility()->volatilityType() == ShiftedLognormal;
 
         Spread adjustment = shiftedLn
-                                ? (fixing + shift) * (fixing + shift) *
-                                      variance * tau / (1.0 + fixing * tau)
-                                : variance * tau / (1.0 + fixing * tau);
+                                ? Real((fixing + shift) * (fixing + shift) *
+                                      variance * tau / (1.0 + fixing * tau))
+                                : Real(variance * tau / (1.0 + fixing * tau));
 
         if (timingAdjustment_ == BivariateLognormal) {
             QL_REQUIRE(!correlation_.empty(), "no correlation given");
@@ -227,11 +222,11 @@ namespace QuantLib {
                      1.0) /
                     tau2;
                 adjustment -= shiftedLn
-                                  ? correlation_->value() * tau2 * variance *
+                                  ? Real(correlation_->value() * tau2 * variance *
                                         (fixing + shift) * (fixing2 + shift) /
-                                        (1.0 + fixing2 * tau2)
-                                  : correlation_->value() * tau2 * variance /
-                                        (1.0 + fixing2 * tau2);
+                                        (1.0 + fixing2 * tau2))
+                                  : Real(correlation_->value() * tau2 * variance /
+                                        (1.0 + fixing2 * tau2));
             }
         }
         return fixing + adjustment;
@@ -258,7 +253,7 @@ namespace QuantLib {
                              public Visitor<DigitalCmsCoupon>,
                              public Visitor<DigitalCmsSpreadCoupon>,
                              public Visitor<RangeAccrualFloatersCoupon>,
-                             public Visitor<SubPeriodsCoupon> {
+                             public Visitor<MultipleResetsCoupon> {
           private:
             ext::shared_ptr<FloatingRateCouponPricer> pricer_;
           public:
@@ -279,7 +274,7 @@ namespace QuantLib {
             void visit(DigitalCmsCoupon& c) override;
             void visit(DigitalCmsSpreadCoupon& c) override;
             void visit(RangeAccrualFloatersCoupon& c) override;
-            void visit(SubPeriodsCoupon& c) override;
+            void visit(MultipleResetsCoupon& c) override;
         };
 
         void PricerSetter::visit(CashFlow&) {
@@ -391,12 +386,11 @@ namespace QuantLib {
             c.setPricer(rangeAccrualPricer);
         }
 
-        void PricerSetter::visit(SubPeriodsCoupon& c) {
-            const ext::shared_ptr<SubPeriodsPricer> subPeriodsPricer =
-                ext::dynamic_pointer_cast<SubPeriodsPricer>(pricer_);
-            QL_REQUIRE(subPeriodsPricer,
-                       "pricer not compatible with sub-period coupon");
-            c.setPricer(subPeriodsPricer);
+        void PricerSetter::visit(MultipleResetsCoupon& c) {
+            const ext::shared_ptr<MultipleResetsPricer> pricer =
+                ext::dynamic_pointer_cast<MultipleResetsPricer>(pricer_);
+            QL_REQUIRE(pricer, "pricer not compatible with multiple-resets coupon");
+            c.setPricer(pricer);
         }
 
         void setCouponPricersFirstMatching(const Leg& leg,

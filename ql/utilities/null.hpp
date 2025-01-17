@@ -27,47 +27,32 @@
 #define quantlib_null_hpp
 
 #include <ql/types.hpp>
-
-#if defined(__GNUC__) && (((__GNUC__ == 4) && (__GNUC_MINOR__ >= 8)) || (__GNUC__ > 4))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
-#endif
-
-#include <boost/type_traits.hpp>
-
-#if defined(__GNUC__) && (((__GNUC__ == 4) && (__GNUC_MINOR__ >= 8)) || (__GNUC__ > 4))
-#pragma GCC diagnostic pop
-#endif
+#include <type_traits>
+#include <limits>
 
 namespace QuantLib {
+
+    #ifdef QL_NULL_AS_FUNCTIONS
+
+    //! template function providing a null value for a given type.
+    template <typename T>
+    T Null() {
+        if constexpr (std::is_floating_point_v<T>) {
+            // a specific, unlikely value that should fit into any Real
+            return (std::numeric_limits<float>::max)();
+        } else if constexpr (std::is_integral_v<T>) {
+            // this should fit into any Integer
+            return (std::numeric_limits<int>::max)();
+        } else {
+            return T();
+        }
+    }
+
+    #else
 
     //! template class providing a null value for a given type.
     template <class Type>
     class Null;
-
-
-    namespace detail {
-
-        template <bool>
-        struct FloatingPointNull;
-
-        // null value for floating-point types
-        template <>
-        struct FloatingPointNull<true> {
-            static float nullValue() {
-                return QL_NULL_REAL;
-            }
-        };
-
-        // null value for integer types
-        template <>
-        struct FloatingPointNull<false> {
-            static int nullValue() {
-                return QL_NULL_INTEGER;
-            }
-        };
-
-    }
 
     // default implementation for built-in types
     template <typename T>
@@ -75,10 +60,19 @@ namespace QuantLib {
       public:
         Null() = default;
         operator T() const {
-            return T(detail::FloatingPointNull<
-                         boost::is_floating_point<T>::value>::nullValue());
+            if constexpr (std::is_floating_point_v<T>) {
+                // a specific, unlikely value that should fit into any Real
+                return (std::numeric_limits<float>::max)();
+            } else if constexpr (std::is_integral_v<T>) {
+                // this should fit into any Integer
+                return (std::numeric_limits<int>::max)();
+            } else {
+                return T();
+            }
         }
     };
+
+    #endif
 
 }
 

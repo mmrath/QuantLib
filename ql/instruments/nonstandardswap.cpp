@@ -28,11 +28,12 @@
 #include <ql/indexes/swapindex.hpp>
 #include <ql/instruments/nonstandardswap.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
+#include <ql/optional.hpp>
 #include <utility>
 
 namespace QuantLib {
 
-    NonstandardSwap::NonstandardSwap(const VanillaSwap &fromVanilla)
+    NonstandardSwap::NonstandardSwap(const FixedVsFloatingSwap &fromVanilla)
         : Swap(2), type_(fromVanilla.type()),
           fixedNominal_(std::vector<Real>(fromVanilla.fixedLeg().size(),
                                           fromVanilla.nominal())),
@@ -67,7 +68,7 @@ namespace QuantLib {
                                      DayCounter floatingDayCount,
                                      const bool intermediateCapitalExchange,
                                      const bool finalCapitalExchange,
-                                     boost::optional<BusinessDayConvention> paymentConvention)
+                                     ext::optional<BusinessDayConvention> paymentConvention)
     : Swap(2), type_(type), fixedNominal_(std::move(fixedNominal)),
       floatingNominal_(floatingNominal), fixedSchedule_(std::move(fixedSchedule)),
       fixedRate_(std::move(fixedRate)), fixedDayCount_(std::move(fixedDayCount)),
@@ -98,7 +99,7 @@ namespace QuantLib {
                                      DayCounter floatingDayCount,
                                      const bool intermediateCapitalExchange,
                                      const bool finalCapitalExchange,
-                                     boost::optional<BusinessDayConvention> paymentConvention)
+                                     ext::optional<BusinessDayConvention> paymentConvention)
     : Swap(2), type_(type), fixedNominal_(std::move(fixedNominal)),
       floatingNominal_(std::move(floatingNominal)), fixedSchedule_(std::move(fixedSchedule)),
       fixedRate_(std::move(fixedRate)), fixedDayCount_(std::move(fixedDayCount)),
@@ -148,7 +149,7 @@ namespace QuantLib {
         // if the gearing is zero then the ibor leg will be set up with fixed
         // coupons which makes trouble here in this context. We therefore use
         // a dirty trick and enforce the gearing to be non zero.
-        for (double& i : gearing_) {
+        for (Real& i : gearing_) {
             if (close(i, 0.0))
                 i = QL_EPSILON;
         }
@@ -209,7 +210,7 @@ namespace QuantLib {
             floatingNominal_.push_back(floatingNominal_.back());
         }
 
-        for (Leg::const_iterator i = legs_[1].begin(); i < legs_[1].end(); ++i)
+        for (auto i = legs_[1].begin(); i < legs_[1].end(); ++i)
             registerWith(*i);
 
         switch (type_) {
@@ -258,7 +259,7 @@ namespace QuantLib {
             } else {
                 ext::shared_ptr<CashFlow> cashflow =
                     ext::dynamic_pointer_cast<CashFlow>(fixedCoupons[i]);
-                std::vector<Date>::const_iterator j =
+                auto j =
                     std::find(arguments->fixedPayDates.begin(),
                               arguments->fixedPayDates.end(), cashflow->date());
                 QL_REQUIRE(j != arguments->fixedPayDates.end(),
@@ -307,7 +308,7 @@ namespace QuantLib {
             } else {
                 ext::shared_ptr<CashFlow> cashflow =
                     ext::dynamic_pointer_cast<CashFlow>(floatingCoupons[i]);
-                std::vector<Date>::const_iterator j = std::find(
+                auto j = std::find(
                     arguments->floatingPayDates.begin(),
                     arguments->floatingPayDates.end(), cashflow->date());
                 QL_REQUIRE(j != arguments->floatingPayDates.end(),

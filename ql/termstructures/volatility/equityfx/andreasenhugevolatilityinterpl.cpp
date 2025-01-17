@@ -21,7 +21,6 @@
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/math/array.hpp>
 #include <ql/math/comparison.hpp>
-#include <ql/math/functional.hpp>
 #include <ql/math/interpolations/backwardflatinterpolation.hpp>
 #include <ql/math/interpolations/cubicinterpolation.hpp>
 #include <ql/methods/finitedifferences/meshers/concentrating1dmesher.hpp>
@@ -72,12 +71,11 @@ namespace QuantLib {
           d2CdK2_(dxMap_.mult(Array(mesher->layout()->size(), -1.0)).add(dxxMap_)),
           mapT_(0, mesher_) {}
 
-        Disposable<Array> d2CdK2(const Array& c) const {
+        Array d2CdK2(const Array& c) const {
             return d2CdK2_.apply(c);
         }
 
-        Disposable<Array> solveFor(
-            Time dT, const Array& sig, const Array& b) const {
+        Array solveFor(Time dT, const Array& sig, const Array& b) const {
 
             Array x(lnMarketStrikes_.size());
             Interpolation sigInterpl;
@@ -105,13 +103,8 @@ namespace QuantLib {
                 QL_FAIL("unknown interpolation type");
             }
 
-            const ext::shared_ptr<FdmLinearOpLayout> layout =
-                mesher_->layout();
-            const FdmLinearOpIterator endIter = layout->end();
-
-            Array z(layout->size());
-            for (FdmLinearOpIterator iter = layout->begin();
-                 iter!=endIter; ++iter) {
+            Array z(mesher_->layout()->size());
+            for (const auto& iter : *mesher_->layout()) {
                 const Size i = iter.index();
                 const Real lnStrike = mesher_->location(iter, 0);
 
@@ -127,11 +120,11 @@ namespace QuantLib {
 
         }
 
-        Disposable<Array> apply(const Array& c) const {
+        Array apply(const Array& c) const {
             return -mapT_.apply(c);
         }
 
-        Disposable<Array> values(const Array& sig) const override {
+        Array values(const Array& sig) const override {
             Array newNPVs = solveFor(dT_, sig, previousNPVs_);
 
             const std::vector<Real>& gridPoints =
@@ -148,13 +141,12 @@ namespace QuantLib {
             return retVal;
         }
 
-        Disposable<Array> vegaCalibrationError(const Array& sig) const {
+        Array vegaCalibrationError(const Array& sig) const {
             return values(sig)/marketVegas_;
         }
 
-        Disposable<Array> initialValues() const {
-            Array retVal(lnMarketStrikes_.size(), 0.25);
-            return retVal;
+        Array initialValues() const {
+            return Array(lnMarketStrikes_.size(), 0.25);
         }
 
 
@@ -179,7 +171,7 @@ namespace QuantLib {
                              ext::shared_ptr<AndreasenHugeCostFunction> callCostFct)
         : putCostFct_(std::move(putCostFct)), callCostFct_(std::move(callCostFct)) {}
 
-        Disposable<Array> values(const Array& sig) const override {
+        Array values(const Array& sig) const override {
             if ((putCostFct_ != nullptr) && (callCostFct_ != nullptr)) {
                 const Array pv = putCostFct_->values(sig);
                 const Array cv = callCostFct_->values(sig);
@@ -197,7 +189,7 @@ namespace QuantLib {
                 QL_FAIL("internal error: cost function not set");
         }
 
-        Disposable<Array> initialValues() const {
+        Array initialValues() const {
             if ((putCostFct_ != nullptr) && (callCostFct_ != nullptr))
                 return 0.5*(  putCostFct_->initialValues()
                             + callCostFct_->initialValues());
@@ -255,8 +247,7 @@ namespace QuantLib {
             const Real strike = payoff->strike();
             strikes.insert(strike);
 
-            calibrationSet_.push_back(
-                std::make_pair(ext::make_shared<VanillaOption>(payoff, exercise), i.second));
+            calibrationSet_.emplace_back(ext::make_shared<VanillaOption>(payoff, exercise), i.second);
 
             registerWith(i.second);
         }
@@ -307,10 +298,11 @@ namespace QuantLib {
         const DiscountFactor discount = rTS_->discount(expiryTime);
         const Real fwd = spot_->value()*qTS_->discount(expiryTime)/discount;
 
+        Size null = Null<Size>();
         const Size nOptions = std::count_if(
             calibrationMatrix_[iExpiry].begin(),
             calibrationMatrix_[iExpiry].end(),
-            not_null<Size>());
+            [=](Size n){ return n != null; });
 
         Array lnMarketStrikes(nOptions),
             marketNPVs(nOptions), marketVegas(nOptions);
@@ -319,7 +311,7 @@ namespace QuantLib {
         for (Size j=0, k=0; j < strikes_.size(); ++j) {
             const Size idx = calibrationMatrix_[iExpiry][j];
 
-            if (idx != Null<Size>()) {
+            if (idx != null) {
 
                 const Volatility vol = calibrationSet_[idx].second->value();
                 const Real stdDev = vol*std::sqrt(expiryTime);
@@ -437,7 +429,7 @@ namespace QuantLib {
             }
 
             avgError_ +=
-                std::accumulate(vegaDiffs.begin(), vegaDiffs.end(), 0.0);
+                std::accumulate(vegaDiffs.begin(), vegaDiffs.end(), Real(0.0));
             minError_ = std::min(minError_,
                 *std::min_element(vegaDiffs.begin(), vegaDiffs.end()));
             maxError_ = std::max(maxError_,
@@ -475,11 +467,11 @@ namespace QuantLib {
         return rTS_;
     }
 
-    ext::tuple<Real, Real, Real>
+    std::tuple<Real, Real, Real>
     AndreasenHugeVolatilityInterpl::calibrationError() const {
         calculate();
 
-        return ext::make_tuple(minError_, maxError_, avgError_);
+        return std::make_tuple(minError_, maxError_, avgError_);
     }
 
     Size AndreasenHugeVolatilityInterpl::getExerciseTimeIdx(Time t) const {
@@ -492,16 +484,16 @@ namespace QuantLib {
     Real AndreasenHugeVolatilityInterpl::getCacheValue(
         Real strike, const TimeValueCacheType::const_iterator& f) const {
 
-        const Real fwd = ext::get<0>(f->second);
+        const Real fwd = std::get<0>(f->second);
         const Real k = std::log(strike / fwd);
 
         const Real s = std::max(gridPoints_[1],
             std::min(*(gridPoints_.end()-2), k));
 
-        return (*(ext::get<2>(f->second)))(s);
+        return (*(std::get<2>(f->second)))(s);
     }
 
-    Disposable<Array> AndreasenHugeVolatilityInterpl::getPriceSlice(
+    Array AndreasenHugeVolatilityInterpl::getPriceSlice(
         Time t, Option::Type optionType) const {
 
         const Size iu = getExerciseTimeIdx(t);
@@ -516,12 +508,12 @@ namespace QuantLib {
     Real AndreasenHugeVolatilityInterpl::optionPrice(
         Time t, Real strike, Option::Type optionType) const {
 
-        TimeValueCacheType::const_iterator f = priceCache_.find(t);
+        auto f = priceCache_.find(t);
 
         const DiscountFactor df = rTS_->discount(t);
 
         if (f != priceCache_.end()) {
-            const Real fwd = ext::get<0>(f->second);
+            const Real fwd = std::get<0>(f->second);
 
             Real price = getCacheValue(strike, f);
 
@@ -554,7 +546,7 @@ namespace QuantLib {
 
         Real fwd = spot_->value()*qTS_->discount(t)/df;
 
-        priceCache_[t] = ext::make_tuple(
+        priceCache_[t] = std::make_tuple(
                 fwd, prices,
                 ext::make_shared<CubicNaturalSpline>(
                     gridPoints_.begin()+1, gridPoints_.end()-1,
@@ -563,7 +555,7 @@ namespace QuantLib {
         return this->optionPrice(t, strike, optionType);
     }
 
-    Disposable<Array> AndreasenHugeVolatilityInterpl::getLocalVolSlice(
+    Array AndreasenHugeVolatilityInterpl::getLocalVolSlice(
         Time t, Option::Type optionType) const {
 
         const Size iu = getExerciseTimeIdx(t);
@@ -598,7 +590,7 @@ namespace QuantLib {
 
     Volatility AndreasenHugeVolatilityInterpl::localVol(Time t, Real strike)
     const {
-        TimeValueCacheType::const_iterator f = localVolCache_.find(t);
+        auto f = localVolCache_.find(t);
 
         if (f != localVolCache_.end())
             return getCacheValue(strike, f);
@@ -630,7 +622,7 @@ namespace QuantLib {
 
         Real fwd = spot_->value()*qTS_->discount(t)/rTS_->discount(t);
 
-        localVolCache_[t] = ext::make_tuple(
+        localVolCache_[t] = std::make_tuple(
                 fwd, localVol,
                 ext::make_shared<LinearInterpolation>(
                     gridPoints_.begin()+1, gridPoints_.end()-1,

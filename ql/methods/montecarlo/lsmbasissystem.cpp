@@ -29,18 +29,19 @@
 #include <utility>
 
 namespace QuantLib {
+
     namespace {
 
         // makes typing a little easier
-        typedef std::vector<ext::function<Real(Real)> > VF_R;
-        typedef std::vector<ext::function<Real(Array)> > VF_A;
+        typedef std::vector<std::function<Real(Real)> > VF_R;
+        typedef std::vector<std::function<Real(Array)> > VF_A;
         typedef std::vector<std::vector<Size> > VV;
 
         // pow(x, order)
         class MonomialFct {
           public:
             explicit MonomialFct(Size order): order_(order) {}
-            inline Real operator()(const Real x) const {
+            Real operator()(const Real x) const {
                 Real ret = 1.0;
                 for(Size i=0; i<order_; ++i)
                     ret *= x;
@@ -57,7 +58,7 @@ namespace QuantLib {
             explicit MultiDimFct(VF_R b) : b_(std::move(b)) {
                 QL_REQUIRE(!b_.empty(), "zero size basis");
             }
-            inline Real operator()(const Array& a) const {
+            Real operator()(const Array& a) const {
                 #if defined(QL_EXTRA_SAFETY_CHECKS)
                 QL_REQUIRE(b_.size()==a.size(), "wrong argument size");
                 #endif
@@ -100,14 +101,15 @@ namespace QuantLib {
             VV ret(tuples.begin(), tuples.end());
             return ret;
         }
+
     } 
 
     // LsmBasisSystem static methods
 
-    VF_R LsmBasisSystem::pathBasisSystem(Size order, PolynomType polyType) {
+    VF_R LsmBasisSystem::pathBasisSystem(Size order, PolynomialType type) {
         VF_R ret(order+1);
         for (Size i=0; i<=order; ++i) {
-            switch (polyType) {
+            switch (type) {
               case Monomial:
                 ret[i] = MonomialFct(i);
                 break;
@@ -155,14 +157,14 @@ namespace QuantLib {
     }
 
     VF_A LsmBasisSystem::multiPathBasisSystem(Size dim, Size order,
-                                              PolynomType polyType) {
+                                              PolynomialType type) {
         QL_REQUIRE(dim>0, "zero dimension");
         // get single factor basis
-        VF_R pathBasis = pathBasisSystem(order, polyType);
+        VF_R pathBasis = pathBasisSystem(order, type);
         VF_A ret;
         // 0-th order term
         VF_R term(dim, pathBasis[0]);
-        ret.push_back(MultiDimFct(term));
+        ret.emplace_back(MultiDimFct(term));
         // start with all 0 tuple
         VV tuples(1, std::vector<Size>(dim));
         // add multi-factor terms
@@ -173,9 +175,10 @@ namespace QuantLib {
             for (auto& tuple : tuples) {
                 for(Size k=0; k<dim; ++k)
                     term[k] = pathBasis[tuple[k]];
-                ret.push_back(MultiDimFct(term));
+                ret.emplace_back(MultiDimFct(term));
             }
         }
         return ret;
     }
+
 }

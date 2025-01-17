@@ -19,7 +19,7 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
  */
 
-/*! \file makecapfloor.hpp
+/*! \file makeyoyinflationcapfloor.hpp
  \brief Helper class to instantiate standard yoy inflation cap/floor.
  */
 
@@ -37,6 +37,16 @@ namespace QuantLib {
      */
     class MakeYoYInflationCapFloor {
       public:
+        MakeYoYInflationCapFloor(YoYInflationCapFloor::Type capFloorType,
+                                 ext::shared_ptr<YoYInflationIndex> index,
+                                 const Size& length,
+                                 Calendar cal,
+                                 const Period& observationLag,
+                                 CPI::InterpolationType interpolation);
+        /*! \deprecated Use the overload that passes an interpolation type instead.
+                        Deprecated in version 1.36.
+        */
+        [[deprecated("Use the overload that passes an interpolation type instead")]]
         MakeYoYInflationCapFloor(YoYInflationCapFloor::Type capFloorType,
                                  ext::shared_ptr<YoYInflationIndex> index,
                                  const Size& length,
@@ -66,14 +76,15 @@ namespace QuantLib {
         Calendar calendar_;
         ext::shared_ptr<YoYInflationIndex> index_;
         Period observationLag_;
+        CPI::InterpolationType interpolation_;
         Rate strike_;
-        bool firstCapletExcluded_, asOptionlet_;
+        bool firstCapletExcluded_ = false, asOptionlet_ = false;
         Date effectiveDate_;
         Period forwardStart_;
         DayCounter dayCounter_;
-        BusinessDayConvention roll_;
-        Natural fixingDays_;
-        Real nominal_;
+        BusinessDayConvention roll_ = ModifiedFollowing;
+        Natural fixingDays_ = 0;
+        Real nominal_ = 1000000.0;
         Handle<YieldTermStructure> nominalTermStructure_;
 
         ext::shared_ptr<PricingEngine> engine_;

@@ -22,7 +22,7 @@
 
 namespace {
 
-    #if defined(_MSC_VER) || defined(__BORLANDC__)
+    #if defined(_MSC_VER)
     // allow Visual Studio integration
     std::string format(
                        #ifdef QL_ERROR_LINES
@@ -97,6 +97,6 @@ namespace QuantLib {
                                       format(file, line, function, message));
     }
 
-    const char* Error::what() const QL_NOEXCEPT { return message_->c_str(); }
+    const char* Error::what() const noexcept { return message_->c_str(); }
 }
 

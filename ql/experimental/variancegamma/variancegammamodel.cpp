@@ -19,6 +19,7 @@ FOR A PARTICULAR PURPOSE.  See the license for more details.
 
 #include <ql/experimental/variancegamma/variancegammamodel.hpp>
 #include <ql/quotes/simplequote.hpp>
+#include <ql/shared_ptr.hpp>
 
 namespace QuantLib {
 
@@ -32,7 +33,7 @@ namespace QuantLib {
             arguments_[2] = ConstantParameter(process->theta(),
                 NoConstraint());
 
-            generateArguments();
+            VarianceGammaModel::generateArguments();
 
             registerWith(process_->riskFreeRate());
             registerWith(process_->dividendYield());
@@ -40,10 +41,10 @@ namespace QuantLib {
     }
 
     void VarianceGammaModel::generateArguments() {
-        process_.reset(new VarianceGammaProcess(process_->s0(),
+        process_ = ext::make_shared<VarianceGammaProcess>(process_->s0(),
             process_->dividendYield(),
             process_->riskFreeRate(),
-            sigma(), nu(), theta()));
+            sigma(), nu(), theta());
     }
 
 }

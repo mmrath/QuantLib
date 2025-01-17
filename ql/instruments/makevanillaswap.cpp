@@ -33,6 +33,7 @@
 #include <ql/currencies/europe.hpp>
 #include <ql/currencies/oceania.hpp>
 #include <ql/utilities/null.hpp>
+#include <ql/optional.hpp>
 
 namespace QuantLib {
 
@@ -40,22 +41,15 @@ namespace QuantLib {
                                      const ext::shared_ptr<IborIndex>& index,
                                      Rate fixedRate,
                                      const Period& forwardStart)
-    : swapTenor_(swapTenor), iborIndex_(index),
-      fixedRate_(fixedRate), forwardStart_(forwardStart),
-      settlementDays_(Null<Natural>()),
-      fixedCalendar_(index->fixingCalendar()),
+    : swapTenor_(swapTenor), iborIndex_(index), fixedRate_(fixedRate), forwardStart_(forwardStart),
+      settlementDays_(Null<Natural>()), fixedCalendar_(index->fixingCalendar()),
       floatCalendar_(index->fixingCalendar()),
-      type_(Swap::Payer), nominal_(1.0),
+
       floatTenor_(index->tenor()),
-      fixedConvention_(ModifiedFollowing),
-      fixedTerminationDateConvention_(ModifiedFollowing),
+
       floatConvention_(index->businessDayConvention()),
       floatTerminationDateConvention_(index->businessDayConvention()),
-      fixedRule_(DateGeneration::Backward), floatRule_(DateGeneration::Backward),
-      fixedEndOfMonth_(false), floatEndOfMonth_(false),
-      fixedFirstDate_(Date()), fixedNextToLastDate_(Date()),
-      floatFirstDate_(Date()), floatNextToLastDate_(Date()),
-      floatSpread_(0.0),
+
       floatDayCount_(index->dayCounter()) {}
 
     MakeVanillaSwap::operator VanillaSwap() const {
@@ -159,7 +153,7 @@ namespace QuantLib {
             VanillaSwap temp(type_, 100.00, fixedSchedule,
                              0.0, // fixed rate
                              fixedDayCount, floatSchedule, iborIndex_, floatSpread_, floatDayCount_,
-                             boost::none, useIndexedCoupons_);
+                             paymentConvention_, useIndexedCoupons_);
             if (engine_ == nullptr) {
                 Handle<YieldTermStructure> disc =
                                         iborIndex_->forwardingTermStructure();
@@ -178,7 +172,7 @@ namespace QuantLib {
 
         ext::shared_ptr<VanillaSwap> swap(new VanillaSwap(
             type_, nominal_, fixedSchedule, usedFixedRate, fixedDayCount, floatSchedule, iborIndex_,
-            floatSpread_, floatDayCount_, boost::none, useIndexedCoupons_));
+            floatSpread_, floatDayCount_, paymentConvention_, useIndexedCoupons_));
 
         if (engine_ == nullptr) {
             Handle<YieldTermStructure> disc =
@@ -223,13 +217,19 @@ namespace QuantLib {
     MakeVanillaSwap&
     MakeVanillaSwap::withTerminationDate(const Date& terminationDate) {
         terminationDate_ = terminationDate;
-        swapTenor_ = Period();
+        if (terminationDate != Date())
+            swapTenor_ = Period();
         return *this;
     }
 
     MakeVanillaSwap& MakeVanillaSwap::withRule(DateGeneration::Rule r) {
         fixedRule_ = r;
         floatRule_ = r;
+        return *this;
+    }
+
+    MakeVanillaSwap& MakeVanillaSwap::withPaymentConvention(BusinessDayConvention bdc) {
+        paymentConvention_ = bdc;
         return *this;
     }
 
@@ -353,7 +353,7 @@ namespace QuantLib {
         return *this;
     }
 
-    MakeVanillaSwap& MakeVanillaSwap::withIndexedCoupons(const boost::optional<bool>& b) {
+    MakeVanillaSwap& MakeVanillaSwap::withIndexedCoupons(const ext::optional<bool>& b) {
         useIndexedCoupons_ = b;
         return *this;
     }

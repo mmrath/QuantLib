@@ -101,6 +101,18 @@ namespace QuantLib {
             return c->data()[i-1] * std::exp(detail::maxRate * dt);
         }
 
+        // transformation to add constraints to an unconstrained optimization
+        template <class C>
+        static Real transformDirect(Real x, Size i, const C* c)
+        {
+            return std::exp(x);
+        }
+        template <class C>
+        static Real transformInverse(Real x, Size i, const C* c)
+        {
+            return std::log(x);
+        }
+
         // root-finding update
         static void updateGuess(std::vector<Real>& data,
                                 Real discount,
@@ -159,7 +171,7 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::min_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r*2.0 : r/2.0;
+                return r<0.0 ? Real(r*2.0) : Real(r/2.0);
             }
             // no constraints.
             // We choose as min a value very unlikely to be exceeded.
@@ -173,11 +185,23 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::max_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r/2.0 : r*2.0;
+                return r<0.0 ? Real(r/2.0) : Real(r*2.0);
             }
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.
             return detail::maxRate;
+        }
+
+        // transformation to add constraints to an unconstrained optimization
+        template <class C>
+        static Real transformDirect(Real x, Size i, const C* c)
+        {
+            return x;
+        }
+        template <class C>
+        static Real transformInverse(Real x, Size i, const C* c)
+        {
+            return x;
         }
 
         // root-finding update
@@ -240,7 +264,7 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::min_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r*2.0 : r/2.0;
+                return r<0.0 ? Real(r*2.0) : Real(r/2.0);
             }
             // no constraints.
             // We choose as min a value very unlikely to be exceeded.
@@ -254,11 +278,23 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::max_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r/2.0 : r*2.0;
+                return r<0.0 ? Real(r/2.0) : Real(r*2.0);
             }
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.
             return detail::maxRate;
+        }
+
+        // transformation to add constraints to an unconstrained optimization
+        template <class C>
+        static Real transformDirect(Real x, Size i, const C* c)
+        {
+            return x;
+        }
+        template <class C>
+        static Real transformInverse(Real x, Size i, const C* c)
+        {
+            return x;
         }
 
         // root-finding update
@@ -321,14 +357,13 @@ namespace QuantLib {
             Real result;
             if (validData) {
                 Real r = *(std::min_element(c->data().begin(), c->data().end()));
-                result = r<0.0 ? r*2.0 : r/2.0;
+                result = r<0.0 ? Real(r*2.0) : r/2.0;
             } else {
                 // no constraints.
                 // We choose as min a value very unlikely to be exceeded.
                 result = -detail::maxRate;
             }
-            Real t = c->timeFromReference(c->dates()[i]);
-            return std::max(result, -1.0 / t + 1E-8);
+            return std::max(result, -1.0 / c->times()[i] + 1E-8);
         }
         template <class C>
         static Real maxValueAfter(Size,
@@ -338,11 +373,23 @@ namespace QuantLib {
         {
             if (validData) {
                 Real r = *(std::max_element(c->data().begin(), c->data().end()));
-                return r<0.0 ? r/2.0 : r*2.0;
+                return r<0.0 ? Real(r/2.0) : r*2.0;
             }
             // no constraints.
             // We choose as max a value very unlikely to be exceeded.
             return detail::maxRate;
+        }
+
+        // transformation to add constraints to an unconstrained optimization
+        template <class C>
+        static Real transformDirect(Real x, Size i, const C* c)
+        {
+            return std::exp(x) + (-1.0 / c->times()[i] + 1E-8);
+        }
+        template <class C>
+        static Real transformInverse(Real x, Size i, const C* c)
+        {
+            return std::log(x - (-1.0 / c->times()[i] + 1E-8));
         }
 
         // root-finding update

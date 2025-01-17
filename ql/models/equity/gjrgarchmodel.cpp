@@ -19,12 +19,13 @@
 
 #include <ql/models/equity/gjrgarchmodel.hpp>
 #include <ql/quotes/simplequote.hpp>
+#include <ql/shared_ptr.hpp>
 
 namespace QuantLib {
 
     class GJRGARCHModel::VolatilityConstraint : public Constraint {
       private:
-        class Impl : public Constraint::Impl {
+        class Impl final : public Constraint::Impl {
           public:
             bool test(const Array& params) const override {
                 const Real beta  = params[2];
@@ -57,7 +58,7 @@ namespace QuantLib {
         constraint_ = ext::shared_ptr<Constraint>(
             new CompositeConstraint(*constraint_, VolatilityConstraint()));
 
-        generateArguments();
+        GJRGARCHModel::generateArguments();
 
         registerWith(process_->riskFreeRate());
         registerWith(process_->dividendYield());
@@ -65,13 +66,13 @@ namespace QuantLib {
     }
 
     void GJRGARCHModel::generateArguments() {
-        process_.reset(new GJRGARCHProcess(process_->riskFreeRate(),
+        process_ = ext::make_shared<GJRGARCHProcess>(process_->riskFreeRate(),
                                            process_->dividendYield(),
                                            process_->s0(),
                                            v0(), omega(),
                                            alpha(), beta(),
                                            gamma(), lambda(),
-                                           process_->daysPerYear()));
+                                           process_->daysPerYear());
     }
 }
 

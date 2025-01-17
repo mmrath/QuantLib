@@ -24,7 +24,6 @@
 */
 
 #include <ql/instruments/basketoption.hpp>
-#include <ql/math/functional.hpp>
 #include <ql/math/integrals/simpsonintegral.hpp>
 #include <ql/methods/finitedifferences/meshers/fdmmesher.hpp>
 #include <ql/methods/finitedifferences/operators/fdmlinearoplayout.hpp>
@@ -39,20 +38,20 @@ namespace QuantLib {
         struct mapped_payoff {
             explicit mapped_payoff(
                 const Payoff& payoff,
-                const ext::function<Real(Real)>& gridMapping)
+                const std::function<Real(Real)>& gridMapping)
             : payoff(payoff), gridMapping_(gridMapping) {}
 
             Real operator()(Real x) const { return payoff(gridMapping_(x)); }
 
             const Payoff& payoff;
-            const ext::function<Real(Real)>& gridMapping_;
+            const std::function<Real(Real)>& gridMapping_;
         };
     }
 
     FdmCellAveragingInnerValue::FdmCellAveragingInnerValue(ext::shared_ptr<Payoff> payoff,
                                                            ext::shared_ptr<FdmMesher> mesher,
                                                            Size direction,
-                                                           ext::function<Real(Real)> gridMapping)
+                                                           std::function<Real(Real)> gridMapping)
     : payoff_(std::move(payoff)), mesher_(std::move(mesher)), direction_(direction),
       gridMapping_(std::move(gridMapping)) {}
 
@@ -67,10 +66,7 @@ namespace QuantLib {
             avgInnerValues_.resize(mesher_->layout()->dim()[direction_]);
             std::deque<bool> initialized(avgInnerValues_.size(), false);
 
-            const ext::shared_ptr<FdmLinearOpLayout> layout =
-                mesher_->layout();
-            const FdmLinearOpIterator endIter = layout->end();
-            for (FdmLinearOpIterator i = layout->begin(); i != endIter; ++i) {
+            for (const auto& i : *mesher_->layout()) {
                 const Size xn = i.coordinates()[direction_];
                 if (!initialized[xn]) {
                     initialized[xn]     = true;
@@ -98,7 +94,7 @@ namespace QuantLib {
         Real retVal;
         try {
             const Real acc
-                = ((f(a) != 0.0 || f(b) != 0.0) ? (f(a)+f(b))*5e-5 : 1e-4);
+                = ((f(a) != 0.0 || f(b) != 0.0) ? Real((f(a)+f(b))*5e-5) : 1e-4);
             retVal = SimpsonIntegral(acc, 8)(f, a, b)/(b-a);
         }
         catch (Error&) {
@@ -109,18 +105,13 @@ namespace QuantLib {
         return retVal;
     }
 
-    namespace {
-        typedef Real (*Real2RealFct)(Real);
-    }
-
     FdmLogInnerValue::FdmLogInnerValue(
         const ext::shared_ptr<Payoff>& payoff,
         const ext::shared_ptr<FdmMesher>& mesher,
         Size direction)
     : FdmCellAveragingInnerValue(
         payoff, mesher, direction,
-        ext::function<Real(Real)>(static_cast<Real2RealFct>(std::exp))) {
-    }
+        [](Real x) -> Real { return std::exp(x); }) {}
 
 
     FdmLogBasketInnerValue::FdmLogBasketInnerValue(ext::shared_ptr<BasketPayoff> payoff,

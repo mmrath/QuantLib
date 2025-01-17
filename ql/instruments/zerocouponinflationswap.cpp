@@ -54,7 +54,7 @@ namespace QuantLib {
       infCalendar_(std::move(infCalendar)), infConvention_(infConvention),
       dayCounter_(std::move(dayCounter)) {
         // first check compatibility of index and swap definitions
-        if (detail::CPI::effectiveInterpolationType(infIndex_, observationInterpolation_) == CPI::Linear) {
+        if (detail::CPI::effectiveInterpolationType(observationInterpolation_) == CPI::Linear) {
             Period pShift(infIndex_->frequency());
             QL_REQUIRE(observationLag_ - pShift >= infIndex_->availabilityLag(),
                        "inconsistency between swap observation lag "
@@ -62,7 +62,7 @@ namespace QuantLib {
                            << pShift << " and index availability " << infIndex_->availabilityLag()
                            << ": need (obsLag-index period) >= availLag");
         } else {
-            QL_REQUIRE(infIndex_->availabilityLag() < observationLag_,
+            QL_REQUIRE(infIndex_->availabilityLag() <= observationLag_,
                        "index tries to observe inflation fixings that do not yet exist: "
                            << " availability lag " << infIndex_->availabilityLag()
                            << " versus obs lag = " << observationLag_);
@@ -81,8 +81,7 @@ namespace QuantLib {
         auto inflationCashFlow =
             ext::make_shared<ZeroInflationCashFlow>(nominal, infIndex, observationInterpolation_,
                                                     startDate, maturity, observationLag_,
-                                                    adjustInfObsDates_ ? infCalendar_ : NullCalendar(),
-                                                    infConvention, infPayDate, growthOnly);
+                                                    infPayDate, growthOnly);
 
         baseDate_ = inflationCashFlow->baseDate();
         obsDate_ = inflationCashFlow->fixingDate();
@@ -92,7 +91,7 @@ namespace QuantLib {
         // term structure before allowing users to create instruments.
         Real T =
             inflationYearFraction(infIndex_->frequency(),
-                                  detail::CPI::isInterpolated(infIndex_, observationInterpolation_),
+                                  detail::CPI::isInterpolated(observationInterpolation_),
                                   dayCounter_, baseDate_, obsDate_);
         // N.B. the -1.0 is because swaps only exchange growth, not notionals as well
         Real fixedAmount = nominal * (std::pow(1.0 + fixedRate, T) - 1.0);
@@ -118,50 +117,6 @@ namespace QuantLib {
         }
     }
 
-    ZeroCouponInflationSwap::ZeroCouponInflationSwap(
-        Type type,
-        Real nominal,
-        const Date& startDate,
-        const Date& maturity,
-        Calendar fixCalendar,
-        BusinessDayConvention fixConvention,
-        DayCounter dayCounter,
-        Rate fixedRate,
-        const ext::shared_ptr<ZeroInflationIndex>& infIndex,
-        const Period& observationLag,
-        bool adjustInfObsDates,
-        Calendar infCalendar,
-        BusinessDayConvention infConvention)
-    : ZeroCouponInflationSwap(type,
-                              nominal,
-                              startDate,
-                              maturity,
-                              std::move(fixCalendar),
-                              fixConvention,
-                              std::move(dayCounter),
-                              fixedRate,
-                              infIndex,
-                              observationLag,
-                              CPI::AsIndex,
-                              adjustInfObsDates,
-                              std::move(infCalendar),
-                              infConvention) {}
-
-
-    void ZeroCouponInflationSwap::setupArguments(PricingEngine::arguments* args) const {
-        Swap::setupArguments(args);
-        // you don't actually need to do anything else because it is so simple
-    }
-
-    void ZeroCouponInflationSwap::arguments::validate() const {
-        Swap::arguments::validate();
-        // you don't actually need to do anything else because it is so simple
-    }
-
-    void ZeroCouponInflationSwap::fetchResults(const PricingEngine::results* r) const {
-        Swap::fetchResults(r);
-        // you don't actually need to do anything else because it is so simple
-    }
 
     Real ZeroCouponInflationSwap::fairRate() const {
         // What does this mean before or after trade date?
@@ -177,7 +132,7 @@ namespace QuantLib {
         Real growth = icf->amount() / icf->notional() + 1.0;
         Real T =
             inflationYearFraction(infIndex_->frequency(),
-                                  detail::CPI::isInterpolated(infIndex_, observationInterpolation_),
+                                  detail::CPI::isInterpolated(observationInterpolation_),
                                   dayCounter_, baseDate_, obsDate_);
 
         return std::pow(growth,1.0/T) - 1.0;

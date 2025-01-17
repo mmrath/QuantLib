@@ -58,8 +58,7 @@
 
 namespace QuantLib {
 
-namespace detail {
-namespace NoArbSabrModel {
+namespace detail::NoArbSabrModel {
 // parameter bounds
 const Real beta_min = 0.01;
 const Real beta_max = 0.99;
@@ -97,7 +96,6 @@ const Real density_lower_bound = 1E-50;
 // threshold to identify a zero density
 const Real density_threshold = 1E-100;
 }
-}
 
 class NoArbSabrModel {
 
@@ -130,9 +128,7 @@ class NoArbSabrModel {
       mutable Real numericalForward_;
       ext::shared_ptr<GaussLobattoIntegral> integrator_;
       class integrand;
-      friend class integrand;
       class p_integrand;
-      friend class p_integrand;
 };
 
 namespace detail {

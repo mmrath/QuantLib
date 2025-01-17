@@ -70,8 +70,8 @@ namespace QuantLib {
     }
 
 
-    Disposable<Array> SquareRootCLVModel::collocationPointsX(const Date& d)
-    const {
+    Array SquareRootCLVModel::collocationPointsX(const Date& d) const {
+
         const std::pair<Real, Real> p = nonCentralChiSquaredParams(d);
 
         Array x = GaussianQuadrature(lagrangeOrder_,
@@ -94,15 +94,14 @@ namespace QuantLib {
         const Real b = xMin - x.front();
         const Real a = (xMax - xMin)/(x.back() - x.front());
 
-        for (double& i : x) {
+        for (Real& i : x) {
             i = a * i + b;
         }
 
         return x;
     }
 
-    Disposable<Array> SquareRootCLVModel::collocationPointsY(const Date& d)
-    const {
+    Array SquareRootCLVModel::collocationPointsY(const Date& d) const {
 
         const Array x = collocationPointsX(d);
         const std::pair<Real, Real> params = nonCentralChiSquaredParams(d);
@@ -119,13 +118,13 @@ namespace QuantLib {
         return s;
     }
 
-    ext::function<Real(Time, Real)> SquareRootCLVModel::g() const {
+    std::function<Real(Time, Real)> SquareRootCLVModel::g() const {
         calculate();
         return g_;
     }
 
     void SquareRootCLVModel::performCalculations() const {
-        g_ = ext::function<Real(Time, Real)>(MappingFunction(*this));
+        g_ = std::function<Real(Time, Real)>(MappingFunction(*this));
     }
 
     SquareRootCLVModel::MappingFunction::MappingFunction(
@@ -161,7 +160,7 @@ namespace QuantLib {
     }
 
     Real SquareRootCLVModel::MappingFunction::operator()(Time t,Real x) const {
-        const interpl_type::const_iterator ge = interpl.lower_bound(t);
+        const auto ge = interpl.lower_bound(t);
 
         if (close_enough(ge->first, t)) {
             return (*ge->second)(x, true);

@@ -116,7 +116,7 @@ namespace QuantLib {
         const Array& problemValues() const { return problemValues_; }
 
         //! Returns array of arguments on which calibration is done
-        Disposable<Array> params() const;
+        Array params() const;
 
         virtual void setParams(const Array& params);
         Integer functionEvaluation() const { return functionEvaluation_; }
@@ -125,7 +125,7 @@ namespace QuantLib {
         virtual void generateArguments() {}
         std::vector<Parameter> arguments_;
         ext::shared_ptr<Constraint> constraint_;
-        EndCriteria::Type shortRateEndCriteria_;
+        EndCriteria::Type shortRateEndCriteria_ = EndCriteria::None;
         Array problemValues_;
         Integer functionEvaluation_;
 
@@ -134,7 +134,6 @@ namespace QuantLib {
         class PrivateConstraint;
         //! Calibration cost function class
         class CalibrationFunction;
-        friend class CalibrationFunction;
     };
 
     //! Abstract short-rate model class
@@ -164,7 +163,7 @@ namespace QuantLib {
 
     class CalibratedModel::PrivateConstraint : public Constraint {
       private:
-        class Impl :  public Constraint::Impl {
+        class Impl final : public Constraint::Impl {
           public:
             explicit Impl(const std::vector<Parameter>& arguments)
             : arguments_(arguments) {}

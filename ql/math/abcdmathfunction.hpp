@@ -35,9 +35,6 @@ namespace QuantLib {
     class AbcdMathFunction {
 
       public:
-        typedef Time argument_type;
-        typedef Real result_type;
-
         AbcdMathFunction(Real a = 0.002,
                          Real b = 0.001, 
                          Real c = 0.16,
@@ -106,17 +103,17 @@ namespace QuantLib {
     // inline AbcdMathFunction
     inline Real AbcdMathFunction::operator()(Time t) const {
         //return (a_ + b_*t)*std::exp(-c_*t) + d_;
-        return t<0 ? 0.0 : (a_ + b_*t)*std::exp(-c_*t) + d_;
+        return t<0 ? 0.0 : Real((a_ + b_*t)*std::exp(-c_*t) + d_);
     }
 
     inline Real AbcdMathFunction::derivative(Time t) const {
         //return (da_ + db_*t)*std::exp(-c_*t);
-        return t<0 ? 0.0 : (da_ + db_*t)*std::exp(-c_*t);
+        return t<0 ? 0.0 : Real((da_ + db_*t)*std::exp(-c_*t));
     }
 
     inline Real AbcdMathFunction::primitive(Time t) const {
         //return (pa_ + pb_*t)*std::exp(-c_*t) + d_*t + K_;
-        return t<0 ? 0.0 : (pa_ + pb_*t)*std::exp(-c_*t) + d_*t + K_;
+        return t<0 ? 0.0 : Real((pa_ + pb_*t)*std::exp(-c_*t) + d_*t + K_);
     }
 
     inline Real AbcdMathFunction::maximumValue() const {

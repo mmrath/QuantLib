@@ -140,7 +140,7 @@ namespace QuantLib {
                     Real quoteValue = 0;
 
                     if (stepDate <= lastQuoteDate) {
-                        quoteValue = index_->price(stepDate);
+                        quoteValue = index_->fixing(stepDate);
                     } else {
                         quoteValue = index_->forwardPrice(stepDate);
                     }
@@ -183,7 +183,7 @@ namespace QuantLib {
                 totalQuantityAmount += periodQuantityAmount;
 
                 Real avgDailyQuantityAmount =
-                    periodDayCount == 0 ? 0 :
+                    periodDayCount == 0 ? Real(0) :
                                           periodQuantityAmount / periodDayCount;
 
                 Real payLegValue = 0;
@@ -250,10 +250,8 @@ namespace QuantLib {
 
             QL_REQUIRE(!paymentCashFlows_.empty(), "no cashflows");
 
-            for (SecondaryCostAmounts::const_iterator i =
-                     secondaryCostAmounts_.begin();
-                 i != secondaryCostAmounts_.end(); ++i) {
-                Real amount = i->second.value();
+            for (auto & secondaryCostAmount : secondaryCostAmounts_) {
+                Real amount = secondaryCostAmount.second.value();
                 NPV_ -= amount;
             }
 

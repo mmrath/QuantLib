@@ -20,6 +20,7 @@
 #ifndef quantlib_test_utilities_hpp
 #define quantlib_test_utilities_hpp
 
+#include <ql/indexes/indexmanager.hpp>
 #include <ql/instruments/payoffs.hpp>
 #include <ql/exercise.hpp>
 #include <ql/termstructures/yieldtermstructure.hpp>
@@ -27,7 +28,6 @@
 #include <ql/quote.hpp>
 #include <ql/patterns/observable.hpp>
 #include <ql/time/daycounters/actual365fixed.hpp>
-#include <ql/functional.hpp>
 #include <boost/test/unit_test.hpp>
 #if BOOST_VERSION < 105900
 #include <boost/test/floating_point_comparison.hpp>
@@ -41,42 +41,28 @@
 #include <utility>
 #include <vector>
 
-// This makes it easier to use array literals (for new code, use std::vector though)
-#define LENGTH(a) (sizeof(a)/sizeof(a[0]))
-
-#define QUANTLIB_TEST_CASE(f) BOOST_TEST_CASE(QuantLib::detail::quantlib_test_case(f))
+// This adapts the BOOST_CHECK_SMALL and BOOST_CHECK_CLOSE macros to
+// support a struct as Real for arguments, while fully transparant to regular doubles.
+// Unfortunately boost does not provide a portable way to customize these macros' behaviour,
+// so we need to define wrapper macros QL_CHECK_SMALL etc.
+//
+// It is required to have a function `value` defined that returns the double-value
+// of the Real type (or a value function in the Real type's namespace for ADT).
 
 namespace QuantLib {
-
-    namespace detail {
-
-        // used to avoid no-assertion messages in Boost 1.35
-        class quantlib_test_case {
-            ext::function<void()> test_;
-          public:
-            template <class F>
-            explicit quantlib_test_case(F test) : test_(test) {}
-            void operator()() const {
-                Date before = Settings::instance().evaluationDate();
-                BOOST_CHECK(true);
-                test_();
-                Date after = Settings::instance().evaluationDate();
-                if (before != after)
-                    BOOST_ERROR("Evaluation date not reset"
-                                << "\n  before: " << before
-                                << "\n  after:  " << after);
-            }
-            #if BOOST_VERSION <= 105300
-            // defined to avoid unused-variable warnings. It doesn't
-            // work after Boost 1.53 because the functions were
-            // overloaded and the address can't be resolved.
-            void _use_check(
-                    const void* = &boost::test_tools::check_is_close,
-                    const void* = &boost::test_tools::check_is_small) const {}
-            #endif
-        };
-
+    // overload this function in case Real is something different - it should alway return double
+    inline double value(double x) {
+        return x;
     }
+}
+
+using QuantLib::value;
+
+#define QL_CHECK_SMALL(FPV, T)  BOOST_CHECK_SMALL(value(FPV), value(T))
+#define QL_CHECK_CLOSE(L, R, T) BOOST_CHECK_CLOSE(value(L), value(R), value(T))
+#define QL_CHECK_CLOSE_FRACTION(L, R, T) BOOST_CHECK_CLOSE_FRACTION(value(L), value(R), value(T))
+
+namespace QuantLib {
 
     std::string payoffTypeToString(const ext::shared_ptr<Payoff>&);
     std::string exerciseTypeToString(const ext::shared_ptr<Exercise>&);
@@ -142,8 +128,7 @@ namespace QuantLib {
     Real norm(const Iterator& begin, const Iterator& end, Real h) {
         // squared values
         std::vector<Real> f2(end-begin);
-        std::transform(begin,end,begin,f2.begin(),
-                       std::multiplies<Real>());
+        std::transform(begin, end, begin, f2.begin(), std::multiplies<>());
         // numeric integral of f^2
         Real I = h * (std::accumulate(f2.begin(),f2.end(),Real(0.0))
                       - 0.5*f2.front() - 0.5*f2.back());
@@ -156,11 +141,23 @@ namespace QuantLib {
     }
 
 
-    // this cleans up index-fixing histories when destroyed
-    class IndexHistoryCleaner {
-      public:
-        IndexHistoryCleaner() = default;
-        ~IndexHistoryCleaner();
+    // Used to check that an exception message contains the expected message string
+    struct ExpectedErrorMessage {
+
+        explicit ExpectedErrorMessage(std::string msg) : expected(std::move(msg)) {}
+
+        bool operator()(const Error& ex) const {
+            std::string actual(ex.what());
+            if (actual.find(expected) == std::string::npos) {
+                BOOST_TEST_MESSAGE("Error expected to contain: '" << expected << "'.");
+                BOOST_TEST_MESSAGE("Actual error is: '" << actual << "'.");
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        std::string expected;
     };
 
 

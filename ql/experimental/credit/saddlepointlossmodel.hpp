@@ -152,11 +152,11 @@ namespace QuantLib {
           Included for optimization, most methods work on expansion of these 
           terms.
           Alternatively use a local private buffer member? */
-        ext::tuple<Real, Real, Real, Real> CumGen0234DerivCond(
+        std::tuple<Real, Real, Real, Real> CumGen0234DerivCond(
             const std::vector<Real>& invUncondProbs,
             Real saddle, 
             const std::vector<Real>&  mktFactor) const;
-        ext::tuple<Real, Real> CumGen02DerivCond(
+        std::tuple<Real, Real> CumGen02DerivCond(
             const std::vector<Real>& invUncondProbs,
             Real saddle, 
             const std::vector<Real>&  mktFactor) const;
@@ -263,7 +263,7 @@ namespace QuantLib {
     public:
       Probability probOverLoss(const Date& d, Real trancheLossFract) const override;
 
-      Disposable<std::map<Real, Probability> > lossDistribution(const Date& d) const override;
+      std::map<Real, Probability> lossDistribution(const Date& d) const override;
 
     protected:
         /*! 
@@ -297,7 +297,7 @@ namespace QuantLib {
     public:
         Probability probDensity(const Date& d, Real loss) const;
     protected:
-        Disposable<std::vector<Real> > splitLossCond(
+        std::vector<Real> splitLossCond(
             const std::vector<Real>& invUncondProbs,
             Real loss, std::vector<Real> mktFactor) const;
         Real expectedShortfallFullPortfolioCond(
@@ -307,7 +307,7 @@ namespace QuantLib {
             const std::vector<Real>& invUncondProbs,
             Real lossPerc, Probability percentile, 
             const std::vector<Real>& mktFactor) const;
-        Disposable<std::vector<Real> > expectedShortfallSplitCond(
+        std::vector<Real> expectedShortfallSplitCond(
             const std::vector<Real>& invUncondProbs,
             Real lossPerc, const std::vector<Real>& mktFactor) const;
     public:
@@ -324,7 +324,7 @@ namespace QuantLib {
             The passed loss is the loss amount level at which we want
             to request the sensitivity. Equivalent to a percentile.
         */
-      Disposable<std::vector<Real> > splitVaRLevel(const Date& date, Real loss) const override;
+      std::vector<Real> splitVaRLevel(const Date& date, Real loss) const override;
       Real expectedShortfall(const Date& d, Probability percentile) const override;
 
     protected:
@@ -533,8 +533,7 @@ namespace QuantLib {
     }
 
     template<class CP>
-    inline Disposable<std::vector<Real> > 
-    SaddlePointLossModel<CP>::splitVaRLevel(const Date& date, Real s) const 
+    inline std::vector<Real> SaddlePointLossModel<CP>::splitVaRLevel(const Date& date, Real s) const 
     {
         std::vector<Real> invUncondProbs = 
             basket_->remainingProbabilities(date);
@@ -697,8 +696,7 @@ namespace QuantLib {
     }
 
     template<class CP>
-    ext::tuple<Real, Real, Real, Real> /// DISPOSABLE????
-        SaddlePointLossModel<CP>::CumGen0234DerivCond(
+    std::tuple<Real, Real, Real, Real> SaddlePointLossModel<CP>::CumGen0234DerivCond(
         const std::vector<Real>& invUncondProbs,
         Real saddle, 
         const std::vector<Real>&  mktFactor) const 
@@ -740,8 +738,7 @@ namespace QuantLib {
     }
 
     template<class CP>
-    ext::tuple<Real, Real> /// DISPOSABLE???? 
-        SaddlePointLossModel<CP>::CumGen02DerivCond(
+    std::tuple<Real, Real> SaddlePointLossModel<CP>::CumGen02DerivCond(
         const std::vector<Real>& invUncondProbs,
         Real saddle, 
         const std::vector<Real>&  mktFactor) const 
@@ -896,10 +893,9 @@ namespace QuantLib {
     }
 
     template<class CP>
-    Disposable<std::map<Real, Probability> > 
-        SaddlePointLossModel<CP>::lossDistribution(const Date& d) const {
+    std::map<Real, Probability> SaddlePointLossModel<CP>::lossDistribution(const Date& d) const {
         std::map<Real, Probability> distrib;
-        static const Real numPts = 500.;
+        static constexpr double numPts = 500.;
         for(Real lossFraction=1./numPts; lossFraction<0.45; 
             lossFraction+= 1./numPts)
             distrib.insert(std::make_pair<Real, Probability>(
@@ -950,13 +946,13 @@ namespace QuantLib {
         Real saddlePt = findSaddle(invUncondProbs,
             relativeLoss, mktFactor);
 
-        ext::tuple<Real, Real, Real, Real> cumulants = 
+        std::tuple<Real, Real, Real, Real> cumulants = 
             CumGen0234DerivCond(invUncondProbs, 
                 saddlePt, mktFactor);
-        Real baseVal = ext::get<0>(cumulants);
-        Real secondVal = ext::get<1>(cumulants);
-        Real K3Saddle = ext::get<2>(cumulants);
-        Real K4Saddle = ext::get<3>(cumulants);
+        Real baseVal = std::get<0>(cumulants);
+        Real secondVal = std::get<1>(cumulants);
+        Real K3Saddle = std::get<2>(cumulants);
+        Real K4Saddle = std::get<3>(cumulants);
 
         Real saddleTo2 = saddlePt * saddlePt;
         Real saddleTo3 = saddleTo2 * saddlePt;
@@ -1039,11 +1035,11 @@ namespace QuantLib {
         Real saddlePt = findSaddle(invUncondPs,
             relativeLoss, mktFactor);
 
-        ext::tuple<Real, Real> cumulants = 
+        std::tuple<Real, Real> cumulants = 
             CumGen02DerivCond(invUncondPs,
                 saddlePt, mktFactor);
-        Real baseVal = ext::get<0>(cumulants);
-        Real secondVal = ext::get<1>(cumulants);
+        Real baseVal = std::get<0>(cumulants);
+        Real secondVal = std::get<1>(cumulants);
 
         Real saddleTo2 = saddlePt * saddlePt;
 
@@ -1094,14 +1090,14 @@ namespace QuantLib {
         Real saddlePt = findSaddle(invUncondPs,
             relativeLoss, mktFactor);
 
-        ext::tuple<Real, Real, Real, Real> cumulants = 
+        std::tuple<Real, Real, Real, Real> cumulants = 
             CumGen0234DerivCond(invUncondPs,
             saddlePt, mktFactor);
         /// access them directly rather than through this copy
-        Real K0Saddle = ext::get<0>(cumulants);
-        Real K2Saddle = ext::get<1>(cumulants);
-        Real K3Saddle = ext::get<2>(cumulants);
-        Real K4Saddle = ext::get<3>(cumulants);
+        Real K0Saddle = std::get<0>(cumulants);
+        Real K2Saddle = std::get<1>(cumulants);
+        Real K3Saddle = std::get<2>(cumulants);
+        Real K4Saddle = std::get<3>(cumulants);
         /* see, for instance R.Martin "he saddle point method and portfolio 
         optionalities." in Risk December 2006 p.93 */
         //\todo the exponentials below are dangerous and agressive, tame them.
@@ -1128,7 +1124,7 @@ namespace QuantLib {
     request the sensitivity.  Equivalent to a percentile.
     */
     template<class CP>
-    Disposable<std::vector<Real> > SaddlePointLossModel<CP>::splitLossCond(
+    std::vector<Real> SaddlePointLossModel<CP>::splitLossCond(
         const std::vector<Real>& invUncondProbs,
         Real loss, 
         std::vector<Real> mktFactor) const 
@@ -1196,8 +1192,7 @@ namespace QuantLib {
     }
 
     template<class CP>
-    Disposable<std::vector<Real> > 
-        SaddlePointLossModel<CP>::expectedShortfallSplitCond(
+    std::vector<Real> SaddlePointLossModel<CP>::expectedShortfallSplitCond(
             const std::vector<Real>& invUncondProbs,
             Real lossPerc, const std::vector<Real>& mktFactor) const 
     {
@@ -1305,11 +1300,11 @@ namespace QuantLib {
         // Broda and Paolella:
         Real elCondRatio = elCond / remainingNotional_;
 
-        ext::tuple<Real, Real, Real, Real> cumulants = 
+        std::tuple<Real, Real, Real, Real> cumulants = 
             CumGen0234DerivCond(uncondProbs, 
                 saddlePt, mktFactor);
-        Real K0Saddle = ext::get<0>(cumulants);///USE THEM DIRECTLY
-        Real K2Saddle = ext::get<1>(cumulants);
+        Real K0Saddle = std::get<0>(cumulants);///USE THEM DIRECTLY
+        Real K2Saddle = std::get<1>(cumulants);
 
         Real wq = std::sqrt(2. * saddlePt * lossPercRatio - 2. * K0Saddle);
         //std::sqrt(-2. * saddlePt * lossPerc + 2. * K0Saddle);????

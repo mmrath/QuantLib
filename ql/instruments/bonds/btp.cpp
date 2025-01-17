@@ -83,9 +83,9 @@ namespace QuantLib {
                     Date settlementDate,
                     Real accuracy,
                     Size maxEvaluations) const {
-        return Bond::yield(cleanPrice, ActualActual(ActualActual::ISMA),
-                           Compounded, Annual,
-                           settlementDate, accuracy, maxEvaluations);
+        return Bond::yield({cleanPrice, Bond::Price::Clean},
+                           ActualActual(ActualActual::ISMA), Compounded, Annual, settlementDate,
+                           accuracy, maxEvaluations);
     }
 
 
@@ -137,7 +137,7 @@ namespace QuantLib {
     : basket_(std::move(basket)), euriborIndex_(std::move(euriborIndex)),
       discountCurve_(std::move(discountCurve)), yields_(basket_->size(), 0.05),
       durations_(basket_->size()),
-      nSwaps_(15), // TODO: generalize number of swaps and their lengths
+      // TODO: generalize number of swaps and their lengths
       swaps_(nSwaps_), swapLengths_(nSwaps_), swapBondDurations_(nSwaps_, Null<Time>()),
       swapBondYields_(nSwaps_, 0.05), swapRates_(nSwaps_, Null<Rate>()) {
         registerWith(basket_);
@@ -160,9 +160,8 @@ namespace QuantLib {
         Date bondSettlementDate = btps[0]->settlementDate();
         for (Size i=0; i<basket_->size(); ++i) {
             yields_[i] = BondFunctions::yield(
-                *btps[i], quotes[i]->value(),
-                ActualActual(ActualActual::ISMA), Compounded, Annual,
-                bondSettlementDate,
+                *btps[i], {quotes[i]->value(), Bond::Price::Clean},
+                ActualActual(ActualActual::ISMA), Compounded, Annual, bondSettlementDate,
                 // accuracy, maxIterations, guess
                 1.0e-10, 100, yields_[i]);
             durations_[i] = BondFunctions::duration(
@@ -172,7 +171,7 @@ namespace QuantLib {
         }
         duration_ = std::inner_product(basket_->weights().begin(),
                                        basket_->weights().end(),
-                                       durations_.begin(), 0.0);
+                                       durations_.begin(), Real(0.0));
 
         Natural settlDays = 2;
         DayCounter fixedDayCount = swaps_[0]->fixedDayCount();
@@ -186,7 +185,7 @@ namespace QuantLib {
                                Following, // paymentConvention
                                100.0);    // redemption
         swapBondYields_[0] = BondFunctions::yield(swapBond,
-            100.0, // floating leg NPV including end payment
+            {100.0, Bond::Price::Clean}, // floating leg NPV including end payment
             ActualActual(ActualActual::ISMA), Compounded, Annual,
             bondSettlementDate,
             // accuracy, maxIterations, guess
@@ -205,7 +204,7 @@ namespace QuantLib {
                                    Following, // paymentConvention
                                    100.0);    // redemption
             swapBondYields_[i] = BondFunctions::yield(swapBond,
-                100.0, // floating leg NPV including end payment
+                {100.0, Bond::Price::Clean}, // floating leg NPV including end payment
                 ActualActual(ActualActual::ISMA), Compounded, Annual,
                 bondSettlementDate,
                 // accuracy, maxIterations, guess

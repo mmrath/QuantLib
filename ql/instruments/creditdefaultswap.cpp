@@ -31,6 +31,7 @@
 #include <ql/termstructures/yieldtermstructure.hpp>
 #include <ql/time/calendars/weekendsonly.hpp>
 #include <ql/time/schedule.hpp>
+#include <ql/optional.hpp>
 #include <utility>
 
 namespace QuantLib {
@@ -49,10 +50,10 @@ namespace QuantLib {
                                          const bool rebatesAccrual,
                                          const Date& tradeDate,
                                          Natural cashSettlementDays)
-    : side_(side), notional_(notional), upfront_(boost::none), runningSpread_(spread),
+    : side_(side), notional_(notional), upfront_(ext::nullopt), runningSpread_(spread),
       settlesAccrual_(settlesAccrual), paysAtDefaultTime_(paysAtDefaultTime),
       claim_(std::move(claim)),
-      protectionStart_(protectionStart == Null<Date>() ? schedule[0] : protectionStart),
+      protectionStart_(protectionStart == Date() ? schedule[0] : protectionStart),
       tradeDate_(tradeDate), cashSettlementDays_(cashSettlementDays) {
 
         init(schedule, convention, dayCounter, lastPeriodDayCounter, rebatesAccrual);
@@ -77,15 +78,15 @@ namespace QuantLib {
     : side_(side), notional_(notional), upfront_(upfront), runningSpread_(runningSpread),
       settlesAccrual_(settlesAccrual), paysAtDefaultTime_(paysAtDefaultTime),
       claim_(std::move(claim)),
-      protectionStart_(protectionStart == Null<Date>() ? schedule[0] : protectionStart),
+      protectionStart_(protectionStart == Date() ? schedule[0] : protectionStart),
       tradeDate_(tradeDate), cashSettlementDays_(cashSettlementDays) {
 
         init(schedule, convention, dayCounter, lastPeriodDayCounter, rebatesAccrual, upfrontDate);
     }
 
     void CreditDefaultSwap::init(const Schedule& schedule, BusinessDayConvention paymentConvention,
-        const DayCounter& dayCounter, const DayCounter& lastPeriodDayCounter,
-        bool rebatesAccrual, const Date& upfrontDate) {
+                                 const DayCounter& dayCounter, const DayCounter& lastPeriodDayCounter,
+                                 bool rebatesAccrual, const Date& upfrontDate) {
 
         QL_REQUIRE(!schedule.empty(), "CreditDefaultSwap needs a non-empty schedule.");
 
@@ -120,8 +121,8 @@ namespace QuantLib {
             effectiveUpfrontDate = schedule.calendar().advance(tradeDate_,
                 cashSettlementDays_, Days, paymentConvention);
         }
-        QL_REQUIRE(effectiveUpfrontDate >= protectionStart_, "The cash settlement date must not " <<
-            "be before the protection start date.");
+        QL_REQUIRE(effectiveUpfrontDate >= protectionStart_,
+                   "The cash settlement date must not be before the protection start date.");
 
         // Create the upfront payment, if one is provided.
         Real upfrontAmount = 0.0;
@@ -142,20 +143,25 @@ namespace QuantLib {
             if (tradeDate_ >= schedule.dates().front()) {
                 for (Size i = 0; i < leg_.size(); ++i) {
                     const ext::shared_ptr<CashFlow>& cf = leg_[i];
-                    if (refDate < cf->date()) {
-                        // Calculate the accrual. The most likely scenario.
-                        ext::shared_ptr<FixedRateCoupon> frc = ext::dynamic_pointer_cast<FixedRateCoupon>(cf);
-                        rebateAmount = frc->accruedAmount(refDate);
-                        break;
-                    } else if (refDate == cf->date() && i < leg_.size() - 1) {
-                        // If not the last coupon and trade date + 1 is the next coupon payment date, 
-                        // the accrual is 0 so do nothing.
+                    if (refDate > cf->date()) {
+                        // This coupon is in the past; check the next one
+                        continue;
+                    } else if (refDate == cf->date()) {
+                        // This coupon pays at the reference date.
+                        // If it's not the last coupon, the accrual is 0 so do nothing.
+                        if (i < leg_.size() - 1)
+                            rebateAmount = 0.0;
+                        else {
+                            // On last coupon
+                            ext::shared_ptr<FixedRateCoupon> frc = ext::dynamic_pointer_cast<FixedRateCoupon>(cf);
+                            rebateAmount = frc->amount();
+                        }
                         break;
                     } else {
-                        // Must have trade date + 1 >= last coupon's payment date. '>' here probably does not make
-                        // sense - should possibly have an exception above if trade date >= last coupon's date.
+                        // This coupon pays in the future, and is the first coupon to do so (since they're sorted).
+                        // Calculate the accrual and skip further coupons
                         ext::shared_ptr<FixedRateCoupon> frc = ext::dynamic_pointer_cast<FixedRateCoupon>(cf);
-                        rebateAmount = frc->amount();
+                        rebateAmount = frc->accruedAmount(refDate);
                         break;
                     }
                 }
@@ -181,7 +187,7 @@ namespace QuantLib {
         return runningSpread_;
     }
 
-    boost::optional<Rate> CreditDefaultSwap::upfront() const {
+    ext::optional<Rate> CreditDefaultSwap::upfront() const {
         return upfront_;
     }
 
@@ -355,7 +361,7 @@ namespace QuantLib {
           case ISDA:
             engine = ext::make_shared<IsdaCdsEngine>(
                 probability, recoveryRate, discountCurve,
-                boost::none,
+                ext::nullopt,
                 IsdaCdsEngine::Taylor,
                 IsdaCdsEngine::HalfDayBias,
                 IsdaCdsEngine::Piecewise);
@@ -396,7 +402,7 @@ namespace QuantLib {
           case ISDA:
             engine = ext::make_shared<IsdaCdsEngine>(
                 probability, conventionalRecovery, discountCurve,
-                boost::none,
+                ext::nullopt,
                 IsdaCdsEngine::Taylor,
                 IsdaCdsEngine::HalfDayBias,
                 IsdaCdsEngine::Piecewise);
@@ -454,10 +460,8 @@ namespace QuantLib {
         QL_REQUIRE(!leg.empty(), "coupons not set");
         QL_REQUIRE(upfrontPayment, "upfront payment not set");
         QL_REQUIRE(claim, "claim not set");
-        QL_REQUIRE(protectionStart != Null<Date>(),
-                   "protection start date not set");
-        QL_REQUIRE(maturity != Null<Date>(),
-                   "maturity date not set");
+        QL_REQUIRE(protectionStart != Date(), "protection start date not set");
+        QL_REQUIRE(maturity != Date(), "maturity date not set");
     }
 
     void CreditDefaultSwap::results::reset() {
@@ -488,7 +492,7 @@ namespace QuantLib {
         if (rule == DateGeneration::CDS2015 && (anchorDate == Date(20, Dec, anchorDate.year()) ||
             anchorDate == Date(20, Jun, anchorDate.year()))) {
             if (tenor.length() == 0) {
-                return Null<Date>();
+                return Date();
             } else {
                 anchorDate -= 3 * Months;
             }

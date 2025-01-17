@@ -1,105 +1,180 @@
-Changes for QuantLib 1.24:
+Changes for QuantLib 1.37:
 ==========================
 
-QuantLib 1.24 includes 25 pull requests from several contributors.
+QuantLib 1.37 includes 27 pull requests from several contributors.
 
-The most notable changes are included below.
+Some of the most notable changes are included below.
 A detailed list of changes is available in ChangeLog.txt and at
-<https://github.com/lballabio/QuantLib/milestone/20?closed=1>.
+<https://github.com/lballabio/QuantLib/milestone/35?closed=1>.
+
 
 Portability
 -----------
 
-- Overhauled the CMake build system (thanks to Philip Kovacs).  Among
-  other things, it now allows to specify the available configuration
-  options from the `cmake` invocation and adds the required Boost
-  libraries accordingly.
+- **Future change of default:** as already announced, in the next
+  release we're going to switch the default for `ext::any` and
+  `ext::optional` from the Boost implementation to the standard one.
 
-Instruments
------------
+Dates and calendars
+-------------------
 
-- Avoid callable-bond mispricing when a call date is close but not equal
-  to a coupon date (thanks to Ralf Konrad for the fix and to GitHub user
-  @aichao for the analysis).
-  See <https://github.com/lballabio/QuantLib/issues/930> for details.
+- Added closure for President Carter's funeral to the NYSE calendar;
+  thanks to Dirk Eddelbuettel (@eddelbuettel).
 
-- A new `RiskyBondEngine` is available for bonds (thanks to Lew Wei
-  Hao).  It prices bonds based on a risk-free discount cure and a
-  default-probability curve used to assess the probability of each
-  coupon payment.  It makes accessible to all bonds the calculations
-  previously available in the experimental `RiskyBond` class.
+- Added distinct Wellington and Auckland variants for New Zealand
+  calendar (@lballabio).
 
-Cashflows
----------
 
-- The choice between par and indexed coupons was moved to
-  `IborCouponPricer` (thanks to Peter Caspers).  This also made it
-  possible to override the choice locally when building a
-  `VanillaSwap` or a `SwapRateHelper`, so that coupons with both
-  behaviors can now be used at the same time.
+Indexes
+-------
+
+- Improved the performance of the `addFixing` and `addFixings` method
+  in the `Index` class; thanks to Peter Caspers (@pcaspers).
+
+- Added the KOFR index; thanks to Jongbong An (@jongbongan).
+
+
+Instruments and pricing engines
+-------------------------------
+
+- Added Choi pricing engine for Asian options; thanks to Klaus
+  Spanderen (@klausspanderen).
+
+- Passing a risk-free overnight index to an asset swap now implies
+  using OIS-like coupons (@lballabio).
+
+- Added Bjerksund-Stensland, Operator-Splitting, Deng-Li-Zhou, Choi
+  and n-dim PDE engines for spread options; thanks to Klaus Spanderen
+  (@klausspanderen).
+
+- Deng-Li-Zhou, Choi and n-dim PDE engines for basket options; thanks
+  to Klaus Spanderen (@klausspanderen).
+
 
 Term structures
 ---------------
 
-- Cross-currency basis swap rate helpers now support both
-  constant-notional and marked-to-market swaps (thanks to Marcin
-  Rybacki).
+- **Possibly breaking**: better upper and lower bounds for global
+  bootstrap; thanks to Eugene Toder (@eltoder).  If you created your
+  own bootstrap traits, you'll need to add `transformDirect` and
+  `transformInverse` methods for them to work with the `GlobalBootstrap`
+  class.
 
-Date/time
----------
+- Fitted bond curves can now be passed precomputed parameters without
+  the need for bond helpers (@lballabio).
 
-- Added Chilean calendar (thanks to Anubhav Pandey).
+- Use correct guess in SABR swaption vol cube (@lballabio).
 
-- Added new `ThirdWednesdayInclusive` date-generation rule that also
-  adjusts start and end dates (thanks to Lew Wei Hao).
+- OIS rate helpers can now be passed a date-generation rule; thanks to
+  Sotirios Papathanasopoulos (@sophistis42).
 
-Patterns
---------
+- Swap rate helpers can now be passed explicit start and end dates;
+  thanks to Eugene Toder (@eltoder).
 
-- Overhauled `Singleton` implementation (thanks to Peter Caspers).
-  Singletons are now initialized in a thread-safe way when sessions
-  are enabled, global singletons (that is, independent of sessions)
-  were made available, and static initialization was made safer.
+- OIS rate helpers can now be passed explicit start and end dates,
+  making a distinct `DatedOISRateHelper` class unnecessary; thanks to
+  Eugene Toder (@eltoder).
 
-Test suite
+
+Cash flows
 ----------
 
-- Sped up some of the longer-running tests (thanks to Mohammad Shojatalab).
+- Added new `MultipleResetsCoupon` and `MultipleResetsLeg` classes to
+  manage coupons with multiple resets (@lballabio).  They fix and
+  replace `SubPeriodsCoupon` and `SubPeriodsLeg`.
+
 
 Deprecated features
 -------------------
 
-- Deprecated default constructor for the U.S. calendar; the desired
-  market should now be passed explicitly.
+- **Removed** features deprecated in version 1.32:
+  - the `FixedRateBondForward` class;
+  - the `SampledCurve` and `SampledCurveSet` classes;
+  - the `StepConditionSet` and `BoundaryConditionSet` classes;
+  - the `ParallelEvolver` and `ParallelEvolverTraits` classes;
+  - the `FDVanillaEngine` and `FDMultiPeriodEngine` classes;
+  - the `BSMTermOperator`, `StandardFiniteDifferenceModel`,
+    `StandardSystemFiniteDifferenceModel` and `StandardStepCondition`
+    typedefs;
+  - the `QL_NULL_FUNCTION` macro;
+  - the overloads of `DigitalCmsLeg::withReplication` ,
+    `DigitalCmsSpreadLeg::withReplication` and
+    `DigitalIborLeg::withReplication` taking no arguments;
+  - the empty headers `analyticamericanmargrabeengine.hpp`,
+    `analyticcomplexchooserengine.hpp`,
+    `analyticcomplexchooserengine.hpp`,
+    `analyticcompoundoptionengine.hpp`,
+    `analyticeuropeanmargrabeengine.hpp`,
+    `analyticsimplechooserengine.hpp`, `complexchooseroption.hpp`,
+    `compoundoption.hpp`, `margrabeoption.hpp` and
+    `simplechooseroption.hpp` in the `ql/experimental/exoticoptions`
+    folder;
+  - the empty header `ql/experimental/termstructures/multicurvesensitivities.hpp`;
+  - the empty headers `pdeshortrate.hpp` and `shoutcondition.hpp` in
+    the `ql/methods/finitedifferences` folder;
+  - the empty header `ql/models/marketmodels/duffsdeviceinnerproduct.hpp`;
+  - the empty headers `fdconditions.hpp`, `fddividendengine.hpp` and
+    `fdstepconditionengine.hpp` in the `ql/pricingengines/vanilla`
+    folder.
 
-- Deprecated the `nominalTermStructure` method and the corresponding
-  data member in inflation term structures.  Any object needing the
-  nominal term structure should have it passed explicitly.
+- Deprecated the `SubPeriodsCoupon`, `SubPeriodsPricer`,
+  `AveragingRatePricer` and `CompoundingRatePricer` classes; renamed
+  to `MultipleResetsCoupon`, `MultipleResetsPricer`,
+  `AveragingMultipleResetsPricer` and
+  `CompoundingMultipleResetsPricer`, respectively.
 
-- Deprecated the `termStructure_` data member in
-  `BlackCalibrationHelper`.  It you're inheriting from
-  `BlackCalibrationHelper` and need it, declare it in your derived
-  class.
+- Deprecated the `SubPeriodsLeg` class; use `MultipleResetsLeg` instead.
 
-- Deprecated the `createAtParCoupons`, `createIndexedCoupons` and
-  `usingAtParCoupons` methods of `IborCoupon`, now moved to a new
-  `IborCoupon::Settings` singleton (thanks to Philip Kovacs).
+- Deprecated the `MultipleResetsCoupon` constructor without a reset
+  schedule; use the other constructor.
 
-- Deprecated the `conversionType` and `baseCurrency` static data
-  members of `Money`, now moved to a new `Money::Settings` singleton
-  (thanks to Philip Kovacs).
+- Deprecated the `calendar`, `price`, `addQuote`, `addQuotes`,
+  `clearQuotes`, `isValidQuoteDate` and `quotes` methods in the
+  `CommodityIndex` class; use `fixingCalendar`, `fixing`, `addFixing`,
+  `addFixings`, `clearFixings`, `isValidFixingDate` and `timeSeries`
+  instead.
 
-- Removed features deprecated in version 1.19: the `BMAIndex`
-  constructor taking a calendar, the `AmericanCondition` and
-  `ShoutCondition` constructors taking an option type and strike, the
-  `CurveDependentStepCondition` class and the
-  `StandardCurveDependentStepCondition` typedef, the
-  `BlackCalibrationHelper` constructor taking a yield term structure,
-  the various inflation term structure constructors taking a yield
-  term structure, the various yield term constructors taking a vector
-  of jumps but not specifying a reference date.
+- Deprecated the experimental `SpreadOption` and `KirkSpreadOptionEngine`
+  classes; use `BasketOption` and `KirkEngine` instead.
+
+- Deprecated the `TransformedGrid` and `LogGrid` classes and the
+  `CenteredGrid`, `BoundedGrid` and `BoundedLogGrid` functions; use
+  the new FD framework instead.
+
+- Deprecated the `PdeOperator` and `BSMOperator` classes; use the new
+  FD framework instead.
+
+- Deprecated the `PdeSecondOrderParabolic`, `PdeConstantCoeff`,
+  `PdeBSM` and `GenericTimeSetter` classes; use the new FD framework
+  instead.
+
+- Deprecated the `hasHistory`, `getHistory`, `clearHistory`,
+  `hasHistoricalFixing` and `setHistory` in the `IndexManager` class;
+  use `Index::hasHistoricalFixing`, `Index::timeSeries`,
+  `Index::clearFixings`, `Index::hasHistoricalFixing` and
+  `Index::addFixings` instead.
+
+- Deprecated the `notifier` method in the `IndexManager` class;
+  register with the relevant index instead.
+
+- Deprecated one of the `AssetSwap` constructors; use the other overload.
+
+- Deprecated the `fcn` and `jacFcn` methods in the
+  `LevenbergMarquardt` class; they are for internal use only.
+
+- Deprecated the `indexIsInterpolated` parameter in YoY inflation
+  curve constructors; use another overload.  Fixings will be
+  interpolated by coupons instead, so curves and indexes will only be
+  asked for fixing at the start of a month.
+
+- Deprecated the `indexIsInterpolated` method and the
+  `indexIsInterpolated_` data member in the
+  `YoYInflationTermStructure` class.
+
+- Deprecated the `DatedOISRateHelper` class; use `OISRateHelper`
+  instead.
 
 
-Thanks go also to Mickael Anas Laaouini, Jack Gillett, Bojan Nikolic
-and Klaus Spanderen for smaller fixes, enhancements and bug reports.
-
+**Thanks go also** to Eugene Toder (@eltoder), Ben Watson (@sonben)
+and the XAD team (@auto-differentiation-dev) for miscellaneous
+smaller fixes, improvements or reports.

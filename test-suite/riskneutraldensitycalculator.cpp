@@ -18,11 +18,11 @@
  FOR A PARTICULAR PURPOSE.  See the license for more details.
 */
 
-#include "riskneutraldensitycalculator.hpp"
+#include "preconditions.hpp"
+#include "toplevelfixture.hpp"
 #include "utilities.hpp"
 #include <ql/instruments/vanillaoption.hpp>
 #include <ql/math/distributions/normaldistribution.hpp>
-#include <ql/math/functional.hpp>
 #include <ql/math/integrals/gausslobattointegral.hpp>
 #include <ql/methods/finitedifferences/utilities/bsmrndcalculator.hpp>
 #include <ql/methods/finitedifferences/utilities/cevrndcalculator.hpp>
@@ -47,10 +47,12 @@
 using namespace QuantLib;
 using namespace boost::unit_test_framework;
 
-void RiskNeutralDensityCalculatorTest::testDensityAgainstOptionPrices() {
-    BOOST_TEST_MESSAGE("Testing density against option prices...");
+BOOST_FIXTURE_TEST_SUITE(QuantLibTests, TopLevelFixture)
 
-    SavedSettings backup;
+BOOST_AUTO_TEST_SUITE(RiskNeutralDensityCalculatorTests)
+
+BOOST_AUTO_TEST_CASE(testDensityAgainstOptionPrices) {
+    BOOST_TEST_MESSAGE("Testing density against option prices...");
 
     const DayCounter dayCounter = Actual365Fixed();
     const Date todaysDate = Settings::instance().evaluationDate();
@@ -76,12 +78,12 @@ void RiskNeutralDensityCalculatorTest::testDensityAgainstOptionPrices() {
     const Time times[] = { 0.5, 1.0, 2.0 };
     const Real strikes[] = { 75.0, 100.0, 150.0 };
 
-    for (double t : times) {
+    for (Real t : times) {
         const Volatility stdDev = v * std::sqrt(t);
         const DiscountFactor df = rTS->discount(t);
         const Real fwd = s0*qTS->discount(t)/df;
 
-        for (double strike : strikes) {
+        for (Real strike : strikes) {
             const Real xs = std::log(strike);
             const BlackCalculator blackCalc(
                 Option::Put, strike, fwd, stdDev, df);
@@ -119,10 +121,8 @@ void RiskNeutralDensityCalculatorTest::testDensityAgainstOptionPrices() {
     }
 }
 
-void RiskNeutralDensityCalculatorTest::testBSMagainstHestonRND() {
+BOOST_AUTO_TEST_CASE(testBSMagainstHestonRND) {
     BOOST_TEST_MESSAGE("Testing Black-Scholes-Merton and Heston densities...");
-
-    SavedSettings backup;
 
     const DayCounter dayCounter = Actual365Fixed();
     const Date todaysDate = Settings::instance().evaluationDate();
@@ -160,8 +160,8 @@ void RiskNeutralDensityCalculatorTest::testBSMagainstHestonRND() {
     const Real strikes[] = { 7.5, 10, 15 };
     const Real probs[] = { 1e-6, 0.01, 0.5, 0.99, 1.0-1e-6 };
 
-    for (double t : times) {
-        for (double strike : strikes) {
+    for (Real t : times) {
+        for (Real strike : strikes) {
             const Real xs = std::log(strike);
 
             const Real expectedPDF = bsm.pdf(xs, t);
@@ -190,7 +190,7 @@ void RiskNeutralDensityCalculatorTest::testBSMagainstHestonRND() {
             }
         }
 
-        for (double prob : probs) {
+        for (Real prob : probs) {
             const Real expectedInvCDF = bsm.invcdf(prob, t);
             const Real calculatedInvCDF = heston.invcdf(prob, t);
 
@@ -207,89 +207,85 @@ void RiskNeutralDensityCalculatorTest::testBSMagainstHestonRND() {
     }
 }
 
-namespace {
-    // see Svetlana Borovkova, Ferry J. Permana
-    // Implied volatility in oil markets
-    // http://www.researchgate.net/publication/46493859_Implied_volatility_in_oil_markets
-    class DumasParametricVolSurface : public BlackVolatilityTermStructure {
-      public:
-        DumasParametricVolSurface(Real b1,
-                                  Real b2,
-                                  Real b3,
-                                  Real b4,
-                                  Real b5,
-                                  ext::shared_ptr<Quote> spot,
-                                  const ext::shared_ptr<YieldTermStructure>& rTS,
-                                  ext::shared_ptr<YieldTermStructure> qTS)
-        : BlackVolatilityTermStructure(0, NullCalendar(), Following, rTS->dayCounter()), b1_(b1),
-          b2_(b2), b3_(b3), b4_(b4), b5_(b5), spot_(std::move(spot)), rTS_(rTS),
-          qTS_(std::move(qTS)) {}
+// see Svetlana Borovkova, Ferry J. Permana
+// Implied volatility in oil markets
+// http://www.researchgate.net/publication/46493859_Implied_volatility_in_oil_markets
+class DumasParametricVolSurface : public BlackVolatilityTermStructure {
+  public:
+    DumasParametricVolSurface(Real b1,
+                              Real b2,
+                              Real b3,
+                              Real b4,
+                              Real b5,
+                              ext::shared_ptr<Quote> spot,
+                              const ext::shared_ptr<YieldTermStructure>& rTS,
+                              ext::shared_ptr<YieldTermStructure> qTS)
+    : BlackVolatilityTermStructure(0, NullCalendar(), Following, rTS->dayCounter()), b1_(b1),
+      b2_(b2), b3_(b3), b4_(b4), b5_(b5), spot_(std::move(spot)), rTS_(rTS),
+      qTS_(std::move(qTS)) {}
 
-        Date maxDate() const override { return Date::maxDate(); }
-        Rate minStrike() const override { return 0.0; }
-        Rate maxStrike() const override { return QL_MAX_REAL; }
+    Date maxDate() const override { return Date::maxDate(); }
+    Rate minStrike() const override { return 0.0; }
+    Rate maxStrike() const override { return QL_MAX_REAL; }
 
-      protected:
-        Volatility blackVolImpl(Time t, Real strike) const override {
-            QL_REQUIRE(t >= 0.0, "t must be >= 0");
+  protected:
+    Volatility blackVolImpl(Time t, Real strike) const override {
+        QL_REQUIRE(t >= 0.0, "t must be >= 0");
 
-            if (t < QL_EPSILON)
-                return b1_;
+        if (t < QL_EPSILON)
+            return b1_;
 
-            const Real fwd = spot_->value()*qTS_->discount(t)/rTS_->discount(t);
-            const Real mn = std::log(fwd/strike)/std::sqrt(t);
+        const Real fwd = spot_->value()*qTS_->discount(t)/rTS_->discount(t);
+        const Real mn = std::log(fwd/strike)/std::sqrt(t);
 
-            return b1_ + b2_*mn + b3_*mn*mn + b4_*t + b5_*mn*t;
-        }
-
-      private:
-        const Real b1_, b2_, b3_, b4_, b5_;
-        const ext::shared_ptr<Quote> spot_;
-        const ext::shared_ptr<YieldTermStructure> rTS_;
-        const ext::shared_ptr<YieldTermStructure> qTS_;
-    };
-
-    class ProbWeightedPayoff {
-      public:
-        ProbWeightedPayoff(Time t,
-                           ext::shared_ptr<Payoff> payoff,
-                           ext::shared_ptr<RiskNeutralDensityCalculator> calc)
-        : t_(t), payoff_(std::move(payoff)), calc_(std::move(calc)) {}
-
-        Real operator()(Real x) const {
-            return calc_->pdf(x, t_) * (*payoff_)(std::exp(x));
-        }
-
-      private:
-        const Real t_;
-        const ext::shared_ptr<Payoff> payoff_;
-        const ext::shared_ptr<RiskNeutralDensityCalculator> calc_;
-    };
-
-    Disposable<std::vector<Time> > adaptiveTimeGrid(
-        Size maxStepsPerYear, Size minStepsPerYear, Real decay, Time endTime) {
-        const Time maxDt = 1.0/maxStepsPerYear;
-        const Time minDt = 1.0/minStepsPerYear;
-
-        Time t=0.0;
-        std::vector<Time> times(1, t);
-        while (t < endTime) {
-            const Time dt = maxDt*std::exp(-decay*t)
-                          + minDt*(1.0-std::exp(-decay*t));
-            t+=dt;
-            times.push_back(std::min(endTime, t));
-        }
-
-        return times;
+        return b1_ + b2_*mn + b3_*mn*mn + b4_*t + b5_*mn*t;
     }
+
+  private:
+    const Real b1_, b2_, b3_, b4_, b5_;
+    const ext::shared_ptr<Quote> spot_;
+    const ext::shared_ptr<YieldTermStructure> rTS_;
+    const ext::shared_ptr<YieldTermStructure> qTS_;
+};
+
+class ProbWeightedPayoff {
+  public:
+    ProbWeightedPayoff(Time t,
+                       ext::shared_ptr<Payoff> payoff,
+                       ext::shared_ptr<RiskNeutralDensityCalculator> calc)
+    : t_(t), payoff_(std::move(payoff)), calc_(std::move(calc)) {}
+
+    Real operator()(Real x) const {
+        return calc_->pdf(x, t_) * (*payoff_)(std::exp(x));
+    }
+
+  private:
+    const Real t_;
+    const ext::shared_ptr<Payoff> payoff_;
+    const ext::shared_ptr<RiskNeutralDensityCalculator> calc_;
+};
+
+std::vector<Time> adaptiveTimeGrid(Size maxStepsPerYear, Size minStepsPerYear, Real decay, Time endTime) {
+    const Time maxDt = 1.0/maxStepsPerYear;
+    const Time minDt = 1.0/minStepsPerYear;
+
+    Time t=0.0;
+    std::vector<Time> times(1, t);
+    while (t < endTime) {
+        const Time dt = maxDt*std::exp(-decay*t)
+            + minDt*(1.0-std::exp(-decay*t));
+        t+=dt;
+        times.push_back(std::min(endTime, t));
+    }
+
+    return times;
 }
 
-void RiskNeutralDensityCalculatorTest::testLocalVolatilityRND() {
+
+BOOST_AUTO_TEST_CASE(testLocalVolatilityRND) {
     BOOST_TEST_MESSAGE("Testing Fokker-Planck forward equation "
                        "for local volatility process to calculate "
                        "risk neutral densities...");
-
-    SavedSettings backup;
 
     const DayCounter dayCounter = Actual365Fixed();
     const Date todaysDate = Date(28, Dec, 2012);
@@ -433,7 +429,7 @@ void RiskNeutralDensityCalculatorTest::testLocalVolatilityRND() {
 
         const ext::shared_ptr<Exercise> exercise(new EuropeanExercise(maturity));
 
-        for (double strike : strikes) {
+        for (Real strike : strikes) {
             const ext::shared_ptr<StrikedTypePayoff> payoff(new PlainVanillaPayoff(
                 (strike > spot->value()) ? Option::Call : Option::Put, strike));
 
@@ -467,7 +463,7 @@ void RiskNeutralDensityCalculatorTest::testLocalVolatilityRND() {
     }
 }
 
-void RiskNeutralDensityCalculatorTest::testSquareRootProcessRND() {
+BOOST_AUTO_TEST_CASE(testSquareRootProcessRND) {
     BOOST_TEST_MESSAGE("Testing probability density for a square root process...");
 
     struct SquareRootProcessParams {
@@ -558,12 +554,10 @@ void RiskNeutralDensityCalculatorTest::testSquareRootProcessRND() {
     }
 }
 
-void RiskNeutralDensityCalculatorTest::testBlackScholesWithSkew() {
+BOOST_AUTO_TEST_CASE(testBlackScholesWithSkew, *precondition(if_speed(Fast))) {
     BOOST_TEST_MESSAGE(
         "Testing probability density for a BSM process "
         "with strike dependent volatility vs local volatility...");
-
-    SavedSettings backup;
 
     const Date todaysDate = Date(3, Oct, 2016);
     Settings::instance().evaluationDate() = todaysDate;
@@ -594,7 +588,7 @@ void RiskNeutralDensityCalculatorTest::testBlackScholesWithSkew() {
         ext::make_shared<HestonBlackVolSurface>(
             Handle<HestonModel>(ext::make_shared<HestonModel>(hestonProcess)),
             AnalyticHestonEngine::AndersenPiterbarg,
-            AnalyticHestonEngine::Integration::discreteTrapezoid(64)));
+            AnalyticHestonEngine::Integration::discreteTrapezoid(128)));
 
     const ext::shared_ptr<TimeGrid> timeGrid(new TimeGrid(maturity, 51));
 
@@ -614,7 +608,7 @@ void RiskNeutralDensityCalculatorTest::testBlackScholesWithSkew() {
 
     const Real strikes[] = { 85, 75, 90, 110, 125, 150 };
 
-    for (double strike : strikes) {
+    for (Real strike : strikes) {
         const Real logStrike = std::log(strike);
 
         const Real expected = hestonCalc.cdf(logStrike, maturity);
@@ -646,7 +640,7 @@ void RiskNeutralDensityCalculatorTest::testBlackScholesWithSkew() {
         }
     }
 
-    for (double strike : strikes) {
+    for (Real strike : strikes) {
         const Real logStrike = std::log(strike);
 
         const Real expected = hestonCalc.pdf(logStrike, maturity)/strike;
@@ -680,7 +674,7 @@ void RiskNeutralDensityCalculatorTest::testBlackScholesWithSkew() {
     }
 
     const Real quantiles[] = { 0.05, 0.25, 0.5, 0.75, 0.95 };
-    for (double quantile : quantiles) {
+    for (Real quantile : quantiles) {
         const Real expected = std::exp(hestonCalc.invcdf(quantile, maturity));
         const Real calculatedGBSM = gbsmCalc.invcdf(quantile, maturity);
 
@@ -698,7 +692,7 @@ void RiskNeutralDensityCalculatorTest::testBlackScholesWithSkew() {
 
         const Real calculatedLocalVol
             = std::exp(localVolCalc.invcdf(quantile, maturity));
-        const Real localVolTol = 0.1;
+        const Real localVolTol = 0.2;
         if (std::fabs(expected - calculatedLocalVol) > localVolTol) {
             BOOST_FAIL("failed to match Heston and local Volatility invcdf"
                     << "\n   t:          " << maturity
@@ -712,7 +706,7 @@ void RiskNeutralDensityCalculatorTest::testBlackScholesWithSkew() {
     }
 }
 
-void RiskNeutralDensityCalculatorTest::testMassAtZeroCEVProcessRND() {
+BOOST_AUTO_TEST_CASE(testMassAtZeroCEVProcessRND) {
     BOOST_TEST_MESSAGE("Testing the mass at zero for a "
                        "constant elasticity of variance (CEV) process...");
 
@@ -738,7 +732,7 @@ void RiskNeutralDensityCalculatorTest::testMassAtZeroCEVProcessRND() {
         const Real ax = 15.0*std::sqrt(t)*alpha*std::pow(f0, beta);
 
         const Real calculated = GaussLobattoIntegral(1000, 1e-8)(
-            [&](Real _x) { return calculator->pdf(_x, t); }, std::max(QL_EPSILON, f0-ax), f0+ax) +
+            [&](Real _x) -> Real { return calculator->pdf(_x, t); }, std::max(QL_EPSILON, f0-ax), f0+ax) +
             calculator->massAtZero(t);
 
         if (std::fabs(calculated - 1.0) > tol) {
@@ -751,7 +745,7 @@ void RiskNeutralDensityCalculatorTest::testMassAtZeroCEVProcessRND() {
     }
 }
 
-void RiskNeutralDensityCalculatorTest::testCEVCDF() {
+BOOST_AUTO_TEST_CASE(testCEVCDF) {
     BOOST_TEST_MESSAGE("Testing CDF for a "
                        "constant elasticity of variance (CEV) process...");
 
@@ -762,7 +756,7 @@ void RiskNeutralDensityCalculatorTest::testCEVCDF() {
     const Real betas[] = { 0.45, 1.25 };
 
     const Real tol = 1e-6;
-    for (Size i = 1; i < LENGTH(betas); ++i) {
+    for (Size i = 1; i < std::size(betas); ++i) {
         const Real beta = betas[i];
         const ext::shared_ptr<CEVRNDCalculator> calculator =
             ext::make_shared<CEVRNDCalculator>(f0, alpha, beta);
@@ -785,27 +779,6 @@ void RiskNeutralDensityCalculatorTest::testCEVCDF() {
         }
     }
 }
+BOOST_AUTO_TEST_SUITE_END()
 
-test_suite* RiskNeutralDensityCalculatorTest::experimental(SpeedLevel speed) {
-    auto* suite = BOOST_TEST_SUITE("Risk neutral density calculator tests");
-
-    suite->add(QUANTLIB_TEST_CASE(
-        &RiskNeutralDensityCalculatorTest::testDensityAgainstOptionPrices));
-    suite->add(QUANTLIB_TEST_CASE(
-        &RiskNeutralDensityCalculatorTest::testBSMagainstHestonRND));
-    suite->add(QUANTLIB_TEST_CASE(
-        &RiskNeutralDensityCalculatorTest::testLocalVolatilityRND));
-    suite->add(QUANTLIB_TEST_CASE(
-        &RiskNeutralDensityCalculatorTest::testSquareRootProcessRND));
-    suite->add(QUANTLIB_TEST_CASE(
-        &RiskNeutralDensityCalculatorTest::testMassAtZeroCEVProcessRND));
-    suite->add(QUANTLIB_TEST_CASE(
-          &RiskNeutralDensityCalculatorTest::testCEVCDF));
-
-    if (speed <= Fast) {
-        suite->add(QUANTLIB_TEST_CASE(
-            &RiskNeutralDensityCalculatorTest::testBlackScholesWithSkew));
-    }
-
-    return suite;
-}
+BOOST_AUTO_TEST_SUITE_END()

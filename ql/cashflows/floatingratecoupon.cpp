@@ -45,8 +45,9 @@ namespace QuantLib {
                                            const Date& exCouponDate)
     : Coupon(paymentDate, nominal, startDate, endDate, refPeriodStart, refPeriodEnd, exCouponDate),
       index_(index), dayCounter_(std::move(dayCounter)),
-      fixingDays_(fixingDays == Null<Natural>() ? index->fixingDays() : fixingDays),
+      fixingDays_(fixingDays == Null<Natural>() ? (index ? index->fixingDays() : 0) : fixingDays),
       gearing_(gearing), spread_(spread), isInArrears_(isInArrears) {
+        QL_REQUIRE(index_, "no index provided");
         QL_REQUIRE(gearing_!=0, "Null gearing not allowed");
 
         if (dayCounter_.empty())
@@ -83,9 +84,14 @@ namespace QuantLib {
     }
 
     Rate FloatingRateCoupon::rate() const {
+        calculate();
+        return rate_;
+    }
+
+    void FloatingRateCoupon::performCalculations() const {
         QL_REQUIRE(pricer_, "pricer not set");
         pricer_->initialize(*this);
-        return pricer_->swapletRate();
+        rate_ = pricer_->swapletRate();
     }
 
     Real FloatingRateCoupon::price(const Handle<YieldTermStructure>& discountingCurve) const {

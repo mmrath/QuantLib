@@ -17,6 +17,1373 @@
 
 /*! \page history Version history
 
+    <strong>Release 1.37 - January 2025</strong>
+
+    PORTABILITY
+    - **Future change of default:** as already announced, in the next
+      release we're going to switch the default for `ext::any` and
+      `ext::optional` from the Boost implementation to the standard one.
+
+    DATES AND CALENDARS
+    - Added closure for President Carter's funeral to the NYSE calendar;
+      thanks to Dirk Eddelbuettel.
+    - Added distinct Wellington and Auckland variants for New Zealand
+      calendar.
+
+    INDEXES
+    - Improved the performance of the `addFixing` and `addFixings` method
+      in the `Index` class; thanks to Peter Caspers.
+    - Added the KOFR index; thanks to Jongbong An.
+
+    INSTRUMENTS AND PRICING ENGINES
+    - Added Choi pricing engine for Asian options; thanks to Klaus
+      Spanderen.
+    - Passing a risk-free overnight index to an asset swap now implies
+      using OIS-like coupons.
+    - Added Bjerksund-Stensland, Operator-Splitting, Deng-Li-Zhou, Choi
+      and n-dim PDE engines for spread options; thanks to Klaus Spanderen.
+    - Deng-Li-Zhou, Choi and n-dim PDE engines for basket options; thanks
+      to Klaus Spanderen.
+
+    TERM STRUCTURES
+    - **Possibly breaking**: better upper and lower bounds for global
+      bootstrap; thanks to Eugene Toder.  If you created your own
+      bootstrap traits, you'll need to add `minValueGlobal` and
+      `maxValueGlobal` methods for them to work with the
+      `GlobalBootstrap` class.
+    - Fitted bond curves can now be passed precomputed parameters without
+      the need for bond helpers.
+    - Use correct guess in SABR swaption vol cube.
+    - OIS rate helpers can now be passed a date-generation rule; thanks to
+      Sotirios Papathanasopoulos.
+    - Swap rate helpers can now be passed explicit start and end dates;
+      thanks to Eugene Toder.
+    - OIS rate helpers can now be passed explicit start and end dates,
+      making a distinct `DatedOISRateHelper` class unnecessary; thanks to
+      Eugene Toder.
+
+    CASH FLOWS
+    - Added new `MultipleResetsCoupon` and `MultipleResetsLeg` classes to
+      manage coupons with multiple resets.  They fix and
+      replace `SubPeriodsCoupon` and `SubPeriodsLeg`.
+
+    DEPRECATED FEATURES
+    - **Removed** features deprecated in version 1.32:
+      - the `FixedRateBondForward` class;
+      - the `SampledCurve` and `SampledCurveSet` classes;
+      - the `StepConditionSet` and `BoundaryConditionSet` classes;
+      - the `ParallelEvolver` and `ParallelEvolverTraits` classes;
+      - the `FDVanillaEngine` and `FDMultiPeriodEngine` classes;
+      - the `BSMTermOperator`, `StandardFiniteDifferenceModel`,
+        `StandardSystemFiniteDifferenceModel` and `StandardStepCondition`
+        typedefs;
+      - the `QL_NULL_FUNCTION` macro;
+      - the overloads of `DigitalCmsLeg::withReplication` ,
+        `DigitalCmsSpreadLeg::withReplication` and
+        `DigitalIborLeg::withReplication` taking no arguments;
+      - the empty headers `analyticamericanmargrabeengine.hpp`,
+        `analyticcomplexchooserengine.hpp`,
+        `analyticcomplexchooserengine.hpp`,
+        `analyticcompoundoptionengine.hpp`,
+        `analyticeuropeanmargrabeengine.hpp`,
+        `analyticsimplechooserengine.hpp`, `complexchooseroption.hpp`,
+        `compoundoption.hpp`, `margrabeoption.hpp` and
+        `simplechooseroption.hpp` in the `ql/experimental/exoticoptions`
+        folder;
+      - the empty header `ql/experimental/termstructures/multicurvesensitivities.hpp`;
+      - the empty headers `pdeshortrate.hpp` and `shoutcondition.hpp` in
+        the `ql/methods/finitedifferences` folder;
+      - the empty header `ql/models/marketmodels/duffsdeviceinnerproduct.hpp`;
+      - the empty headers `fdconditions.hpp`, `fddividendengine.hpp` and
+        `fdstepconditionengine.hpp` in the `ql/pricingengines/vanilla`
+        folder.
+    - Deprecated the `SubPeriodsCoupon`, `SubPeriodsPricer`,
+      `AveragingRatePricer` and `CompoundingRatePricer` classes; renamed
+      to `MultipleResetsCoupon`, `MultipleResetsPricer`,
+      `AveragingMultipleResetsPricer` and
+      `CompoundingMultipleResetsPricer`, respectively.
+    - Deprecated the `SubPeriodsLeg` class; use `MultipleResetsLeg` instead.
+    - Deprecated the `MultipleResetsCoupon` constructor without a reset
+      schedule; use the other constructor.
+    - Deprecated the `calendar`, `price`, `addQuote`, `addQuotes`,
+      `clearQuotes`, `isValidQuoteDate` and `quotes` methods in the
+      `CommodityIndex` class; use `fixingCalendar`, `fixing`, `addFixing`,
+      `addFixings`, `clearFixings`, `isValidFixingDate` and `timeSeries`
+      instead.
+    - Deprecated the experimental `SpreadOption` and `KirkSpreadOptionEngine`
+      classes; use `BasketOption` and `KirkEngine` instead.
+    - Deprecated the `TransformedGrid` and `LogGrid` classes and the
+      `CenteredGrid`, `BoundedGrid` and `BoundedLogGrid` functions; use
+      the new FD framework instead.
+    - Deprecated the `PdeOperator` and `BSMOperator` classes; use the new
+      FD framework instead.
+    - Deprecated the `PdeSecondOrderParabolic`, `PdeConstantCoeff`,
+      `PdeBSM` and `GenericTimeSetter` classes; use the new FD framework
+      instead.
+    - Deprecated the `hasHistory`, `getHistory`, `clearHistory`,
+      `hasHistoricalFixing` and `setHistory` in the `IndexManager` class;
+      use `Index::hasHistoricalFixing`, `Index::timeSeries`,
+      `Index::clearFixings`, `Index::hasHistoricalFixing` and
+      `Index::addFixings` instead.
+    - Deprecated the `notifier` method in the `IndexManager` class;
+      register with the relevant index instead.
+    - Deprecated one of the `AssetSwap` constructors; use the other overload.
+    - Deprecated the `fcn` and `jacFcn` methods in the
+      `LevenbergMarquardt` class; they are for internal use only.
+    - Deprecated the `indexIsInterpolated` parameter in YoY inflation
+      curve constructors; use another overload.  Fixings will be
+      interpolated by coupons instead, so curves and indexes will only be
+      asked for fixing at the start of a month.
+    - Deprecated the `indexIsInterpolated` method and the
+      `indexIsInterpolated_` data member in the
+      `YoYInflationTermStructure` class.
+    - Deprecated the `DatedOISRateHelper` class; use `OISRateHelper`
+      instead.
+
+    Thanks go also to Eugene Toder, Ben Watson
+    and the XAD team for miscellaneous
+    smaller fixes, improvements or reports.
+
+    <strong>Release 1.36 - October 14th, 2024</strong>
+
+    PORTABILITY
+    - **New minimum C++ standard:** starting from this release, a compiler
+      supporting C++17 is required.  Passing `--enable-std-classes` to
+      `configure` now causes `std::any` and `std::optional` to be used.
+    - **End of support:** related to the above, and as announced since
+      release 1.32, this release drops support Visual C++ 2015, g++ up to
+      version 6.x, and clang up to version 4.  Also, given the testing
+      environments available on GitHub actions, clang 5 and 6 are no
+      longer available to us for testing, and the same holds for g++ 7.
+      Therefore, it is suggested to upgrade to a newer version if
+      possible.
+    - **End of support:** this release also removes the configure switch
+      that allowed to use `boost::tuple`, `boost::function` and
+      `boost::bind` instead of their `std` counterparts; the `std` classes
+      were already the default since release 1.32.  The corresponding
+      classes in the `ext` namespace are now deprecated.
+    - **Future change of default:** in a couple of releases, we're going
+      to switch the default for `ext::any` and `ext::optional` from the
+      Boost implementation to the standard one.
+
+    DATES AND CALENDARS
+    - Added `startOfMonth` and `isStartOfMonth` methods to both `Date` and
+    `Calendar`; thanks to Francois Botha.
+    - Added specialized Warsaw Stock Exchange (WSE) calendar to Poland;
+      thanks to Marcin Bogusz.
+    - Added a new one-off holiday to South Korean calendar; thanks to
+      Jongbong An.
+
+    CASH FLOWS
+    - Made` OvernightIndexedCouponPricer` public and renamed to
+      `CompoundingOvernightIndexedCouponPricer`, and moved
+      `ArithmeticAveragedOvernightIndexedCouponPricer` from experimental
+      to core library; thanks to Ralf Konrad Eckel.
+
+    INDEXES
+    - **Possibly breaking:** inherited the `Index` class from `Observer`
+      and added a virtual `pastFixing` method.  If you inherited a class
+      from both `Index` and `Observer`, change your code to avoid
+      inheriting twice from `Observer`.  Thanks to Ralf Konrad Eckel.
+    - Added currency information to `EquityIndex`; thanks to Ralf Konrad
+      Eckel.
+
+    INFLATION
+    - Inflation indexes are now better at deciding when to forecast;
+      also added a `needsForecast` method that makes the
+      information available.
+    - Added `CPI::laggedYoYRate`; also, `YoYInflationCoupon`,
+      `yoyInflationLeg`, `CappedFlooredYoYInflationCoupon`,
+      `YearOnYearInflationSwap`, `MakeYoYInflationCapFloor`,
+      `YearOnYearInflationSwapHelper`, `YoYOptionletHelper` and the
+      experimental `YoYCapFloorTermPriceSurface` and
+      `InterpolatedYoYCapFloorTermPriceSurface` can now take an explicit
+      `CPI::InterpolationType` parameter instead of relying on the index
+      being defined as interpolated or not.  This is a first
+      step in removing interpolation from `YoYInflationIndex` and moving
+      it into the coupons where it belongs.
+    - Added method to YoY inflation index returning the date of the last
+      available fixing.
+
+    TERM STRUCTURES
+    - Allow passing a pricer to the constructor of the `OISRateHelper` and
+      `DatedOISRateHelper` classes; this makes it possible to
+      use arithmetic averaging of overnight rates.
+    - Allow custom constraint in non-linear fitting methods; thanks to Kai
+      Lin.
+    - Allow creating a swap helper with frequency "Once".
+    - The `GlobalBootstrap` constructor can now take an optional optimizer
+      and end criteria, allowing for better configuration; thanks to
+      Eugene Toder.
+
+    VOLATILITY
+    - Added exact Bachelier implied-vol formula from Jäckel's paper; thanks
+      to Peter Caspers.
+
+
+    DEPRECATED FEATURES
+    - **Removed** features deprecated in version 1.31:
+      - the `BlackVanillaOptionPricer` typedef;
+      - the constructors of `CPICoupon` taking a `spread` parameter, its
+        `spread` method, and its protected `spread_` data member;
+      - the `withSpreads` method of `CPILeg`;
+      - the protected `adjustedFixing` method and `spread_` data member of
+        `CPICouponPricer`;
+      - the `YYAUCPIr`, `YYEUHICPr`, `YYFRHICPr`, `YYUKRPIr`, `YYUSCPIr`
+        and `YYZACPIr` indexes and the experimental `YYGenericCPIr` class;
+      - the constructor of `YoYInflationIndex` taking a `ratio` parameter;
+      - a couple of constructors of `ForwardRateAgreement`;
+      - the empty files `ql/math/curve.hpp`, `ql/math/lexicographicalview.hpp`,
+        `ql/termstructures/yield/drifttermstructure.hpp`
+        and `ql/patterns/composite.hpp`;
+      - the `const_iterator` and `const_value_iterator` typedefs in the
+        `Garch11` class;
+      - the `const_time_iterator`, `const_value_iterator`,
+        `const_reverse_time_iterator` and `const_reverse_value_iterator`
+        typedefs and the `cbegin_values`, `cend_values`, `crbegin_values`,
+        `crend_values`, `cbegin_time`, `cend_time`, `crbegin_time` and
+        `crend_time` methods of the `TimeSeries` class;
+      - the `base`, `increment`, `decrement`, `advance` and `distance_to`
+        method of the `step_iterator` class.
+    - Deprecated `ext::function`, `ext::bind`, `ext::ref`, `ext::cref`,
+      `ext::placeholders`, `ext::tuple`, `ext::make_tuple`, `ext::get` and
+      `ext::tie`; use the corresponding `std::` classes and functions
+      instead.
+    - Deprecated the `ArithmeticAverageOIS`, `MakeArithmeticAverageOIS`
+      and `ArithmeticOISRateHelper` classes; use `OvernightIndexedSwap`,
+      `MakeOIS` and `OISRateHelper` instead.
+    - Deprecated the `YoYInflationCoupon`, `yoyInflationLeg`,
+      `CappedFlooredYoYInflationCoupon`, `YearOnYearInflationSwap`,
+      `MakeYoYInflationCapFloor`, `YearOnYearInflationSwapHelper`,
+      `YoYOptionletHelper`, `YoYCapFloorTermPriceSurface` and
+      `InterpolatedYoYCapFloorTermPriceSurface` constructors that don't
+      take an explicit CPI interpolation type.
+    - Deprecated the `getInfo` method of `LevenbergMarquardt`; inspect the
+      result of `minimize` instead.
+    - Deprecated the
+      `ql/experimental/averageois/averageoiscouponpricer.hpp` file;
+      include `ql/cashflows/overnightindexedcouponpricer.hpp` instead.
+    - Deprecated the somewhat out-of-scope and experimental
+      `CreditRiskPlus`, `SensitivityAnalysis`, `aggregateNPV`,
+      `parallelAnalysis` and `bucketAnalysis`.
+
+    Thanks go also to Jonathan Sweemer, Eugene Toder, Ralf Konrad
+    Eckel, Tony Wang and the XAD team for miscellaneous smaller fixes,
+    improvements or reports.
+
+    <strong>Release 1.35 - July 23rd, 2024</strong>
+
+    PORTABILITY
+    - **Future end of support:** as announced since release 1.32, this
+      release is the last to support Visual C++ 2015, g++ up to version
+      6.x, and clang up to version 4; support for those compilers will be
+      dropped in next release, 1.36, about three months from now.  From
+      that point onwards, this will allows us to enable the use of C++17
+      in the code base.  Also, given the testing environments available on
+      GitHub actions, clang 5 and 6 are no longer available to us for
+      testing, and the same holds for g++ 7.  Therefore, it is suggested
+      to upgrade to a newer version if possible.
+    - **Future end of support:** at the same time as the above, we'll also
+      remove the configure switch that allows to use `boost::tuple`,
+      `boost::function` and `boost::bind` instead of their `std`
+      counterparts; the `std` classes are already the default since
+      release 1.32.
+    - The `config.hpp` generated by cmake now behaves like the one
+      generated by autotools and provides values for the defines so that
+      they can be used in `static_assert`.  Thanks to Tom
+      Anderson for the heads-up.
+
+    CALENDARS
+    - Some fixes for the Chilean calendar; thanks to Eugene Toder.
+    - Better NFP/SIFMA rule for Good Friday in U.S. government bond
+      calendar; thanks to Eugene Toder.
+    - Updated Indian NSE holidays for 2024; thanks to Fredrik Gerdin
+      Börjesson.
+    - Some fixes for the Mexican calendar; thanks to Lucas Dias.
+
+    CASH FLOWS
+    - Added lookback days, lockout days and observation shift to
+      overnight-indexed coupons; thanks to Marcin Rybacki.
+      The same parameters were propagated to
+      overnight-indexed swaps and to the corresponding helpers.
+    - Added the `hasFixed` method to IBOR coupons that detects whether
+      they have fixed or still need to be forecast; thanks to Tom Anderson.
+
+    INSTRUMENTS
+    - Overnight index futures didn't manage a start date falling on a
+      holiday; this is now fixed.  Thanks to GitHub user
+      `JustCallMeDavid` for the heads-up.
+    - Callable bonds didn't account for nominal when calculating OAS; this
+      is now fixed.  Thanks to Hristo Raykov.
+    - For European swaption, sometimes the price is quoted as a forward
+      price to be paid at exercise time.  Such a quoted price can now be
+      used for implied-volatility calculation. The forward price is also
+      returned by the Black and Bachelier swaption engines as an
+      additional result.
+
+    RANDOM NUMBERS
+    - Added the fast `ZigguratGaussianRng` generator; thanks to Ralf
+      Konrad Eckel.
+
+    TERM STRUCTURES
+    - Fix treatment of custom end date in `FuturesRateHelper`.
+    - Add possibility to reset guess in fitted bond curves.
+      Thanks to GitHub user `klin333` for the suggestion.
+
+    UTILITIES
+    - Overloaded `Handle` and `RelinkableHandle` constructors on lvalue
+      and rvalue references for performance; thanks to Jonathan Sweemer.
+
+    TOOLS
+    - Better benchmark utility; thanks to Jacques du Toit.
+
+    EXAMPLES
+    - Reworked bond example.
+
+    DEPRECATED FEATURES
+    - **Removed** features deprecated in version 1.30:
+      - the `DividendVanillaOption` and `DividendBarrierOption` classes;
+      - the constructor of `AnalyticDividendEuropeanEngine` taking only a
+        process and no dividends;
+      - the `SwaptionVolCube1`, `SwaptionVolCube1a`, `SwaptionVolCube1x`
+        and `SwaptionVolCube2` typedefs and the empty headers
+        `ql/experimental/volatility/swaptionvolcube1.hpp`,
+        `ql/experimental/volatility/swaptionvolcube1a.hpp` and
+        `ql/experimental/volatility/swaptionvolcube2.hpp`;
+      - the `setCommon` method of `CappedFlooredYoYInflationCoupon`.
+    - Deprecated the constructor of `DatedOISRateHelper` taking a forward
+      start; use the other overload instead.
+    - Deprecated the specialized `Bibor9M`, `Euribor2W`, `Euribor3W`,
+      `Euribor2M`, `Euribor4M`, `Euribor5M`, `Euribor7M`, `Euribor8M`,
+      `Euribor9M`, `Euribor10M`, `Euribor11M`, `Euribor365_SW`,
+      `Euribor365_2W`, `Euribor365_3W`, `Euribor365_1M`, `Euribor365_2M`,
+      `Euribor365_3M`, `Euribor365_4M`, `Euribor365_5M`, `Euribor365_6M`,
+      `Euribor365_7M`, `Euribor365_8M`, `Euribor365_9M`, `Euribor365_10M`,
+      `Euribor365_11M`, `Euribor365_1Y`, `EURLiborSW`, `EURLibor2W`,
+      `EURLibor2M`, `EURLibor4M`, `EURLibor5M`, `EURLibor7M`,
+      `EURLibor8M`, `EURLibor9M`, `EURLibor10M`, `EURLibor11M`; if needed,
+      use the corresponding generic class and pass the tenor (for
+      instance, `Euribor(4 * Months)`).
+    - Renamed `EuriborSW` to `Euribor1W` and deprecated the old name.
+    - Deprecated the constructor of `RelinkableHandle` taking a raw
+      pointer.
+
+    Thanks go also to Dmitri Goloubentsev, Eleanor Green, Tom
+    Anderson, Peter Caspers, Jonghee Lee, Ralf Konrad Eckel and the
+    XAD team for miscellaneous fixes, improvements or reports.
+
+    <strong>Release 1.34 - April 24th, 2024</strong>
+
+    PORTABILITY
+    - **Future end of support:** as announced in release 1.32, we're
+      targeting next release (1.35) as the last to support Visual C++
+      2015, g++ up to version 6.x, and clang up to version 4; support for
+      those compilers will be dropped in release 1.36, about six months
+      from now.  From that point onwards, this will allows us to enable
+      the use of C++17 in the code base.
+      Also, given the testing environments available on GitHub actions,
+      clang 5 is already no longer available to us for testing, and in a
+      while the same will hold for clang 6 and g++ 7.  Therefore, it is
+      suggested to upgrade to a newer version if possible.
+    - **Future end of support:** at the same time as the above, we'll also
+      remove the configure switch that allows to use `boost::tuple`,
+      `boost::function` and `boost::bind` instead of their `std`
+      counterparts; the `std` classes are already the default since
+      release 1.32.
+    - Generate and install pkg-config files in CMake builds; thanks to
+      GitHub user jez6.
+
+    DATES AND CALENDARS
+    - Prevent `Calendar::advance` from returning the business end of month
+      (instead of the calendar end) when `endOfMonth` is `true` and
+      `convention` is `Unadjusted`; thanks to GitHub user DeimosXing.
+    - Add good Friday holiday for SOFR fixing; thanks to GitHub user
+      PaulXiCao.
+    - Properly restrict São Paulo city holiday to years before 2022;
+      thanks to Marco Bruno Ferreira Vasconcellos.
+    - Update holidays for 2023 and 2024 in calendars for India, Thailand,
+      Singapore and South Africa; thanks to Fredrik Gerdin Börjesson.
+
+    CASH FLOWS
+    - Fixed a couple of cases in which notifications were not forwarded
+      properly; thanks to GitHub user djkrystul for the heads-up.
+    - Fixed past payment dates and added support for OIS in
+      `LinearTsrPricer`; thanks to Peter Caspers.
+
+    INSTRUMENTS
+    - Swaptions can now take an OIS as underlying; thanks to Guillaume
+      Horel  and Peter Caspers.  So far, only
+      `BlackSwaptionEngine` manages OIS explicitly; other engines might
+      work and return approximated values.
+    - More methods in `MakeOIS` and `MakeVanillaSwap`; thanks to Eugene Toder.
+    - More methods in the `BondFunctions` class now support either clean or
+      dirty prices; thanks to Francois Botha.
+    - The `basisPointValue` and `yieldValueBasisPoint` methods in
+      `BondFunctions` didn't always manage the settlement date correctly;
+      this is now fixed (thanks to GitHub user jez6).
+    - Add `Custom` to `Futures::Type` enumeration to allow passing custom
+      dates to futures; thanks to Eugene Toder.
+
+    TERM STRUCTURES
+    - Inflation curves can now be built passing an explicit base date
+      (corresponding to the last published fixing) instead of an
+      observation lag.
+    - Fixed calculation of year fraction under Actual/365 Canadian
+      convention in `FuturesRateHelper`; thanks to GitHub user PaulXiCao.
+    - Fixed settlement date calculation in cross-currency basis-swap rate
+      helpers in some cases; thanks to Marcin Rybacki
+      for the fix and to Aleksis Ali Raza for the heads-up.
+
+    MATH
+    - Handle non-equidistant grids and arbitrary dimensions in Laplace
+      interpolation; thanks to Peter Caspers.
+
+    DEPRECATED FEATURES
+    - **Removed** features deprecated in version 1.29:
+      - The `argument_type`, `first_argument_type`, `second_argument_type`
+        and `result_type` typedefs in several classes;
+      - The overloads of zero-rate inflation index constructors taking an
+        `interpolated` argument;
+      - The `interpolated` method and the protected `interpolated_` data
+        member in `InflationIndex`;
+      - The overload of `CashFlows::npvbps` taking the result by reference;
+      - The protected `rateCurve_` method in `InflationCouponPricer`;
+      - The `ThreadKey` typedef;
+      - The empty header `ql/experimental/credit/riskybond.hpp`.
+    - Deprecated the constructors of `InflationTermStructure`,
+      `ZeroInflationTermStructure`, `YoYInflationTermStructure`,
+      `InterpolatedZeroInflationCurve`, `InterpolatedYoYInflationCurve`,
+      `PiecewiseZeroInflationCurve` and `PiecewiseYoYInflationCurve`
+      taking an observation lag; use the overloads taking an explicit base
+      date instead.
+    - Deprecated the `Bond::yield`, `BondFunctions::atmRate`,
+      `BondFunctions::yield` and `BondFunctions::zSpread` overloads taking
+      a clean price as a number; use the overloads taking a `Bond::Price`
+      instead.
+    - Deprecated the `InflationTermStructure::setSeasonality` overload
+      taking no arguments; use the overload taking a pointer and pass an
+      empty one to remove seasonality.
+    - Deprecated the `InflationTermStructure::setBaseRate` method; set
+      `baseRate_` directly if needed.
+    - Deprecated the `Swaption::underlyingSwap` and
+      `SwaptionHelper::underlyingSwap` methods; use `underlying` instead.
+    - Deprecated the broken `FixedRateBondHelper::fixedRateBond` and
+      `CPIBondHelper::cpiBond` methods and the corresponding
+      `fixedRateBond_` and `cpiBond_` data members.
+
+    Thanks go also to Isuru Fernando, Viktor Zhou, Stephen Dacek, Yi
+    Jiang, Jonathan Sweemer, Eugene Toder, the XAD team and GitHub
+    user PaulXiCao and klin333 for miscellaneous fixes, improvements
+    or reports.
+
+    <strong>Release 1.33 - January 22nd, 2024</strong>
+
+    PORTABILITY
+    - **Future end of support:** as announced in release 1.32, we're
+      targeting the future release 1.35 as the last to support Visual C++
+      2015, g++ up to version 6.x, and clang up to version 4; support for
+      those compilers will be dropped in release 1.36, about nine months
+      from now.  From that point onwards, this will allows us to enable
+      the use of C++17 in the code base.
+    - **Future end of support:** at the same time as the above, we'll also
+      remove the configure switch that allows to use `boost::tuple`,
+      `boost::function` and `boost::bind` instead of their `std`
+      counterparts; the `std` classes are already the default since
+      release 1.32.
+    - Added CMake presets for Apple; thanks to Christian Köhnenkamp.
+
+    DATES AND CALENDARS
+    - Added New Year's Eve as a holiday to the Chilean calendar; thanks to
+      GitHub user MoixaStrikes.
+    - Added Black Awareness Day as a holiday to the Brazilian calendar
+      starting from 2024; thanks to GitHub user PaulXiCao.
+    - Added Inauguration Day as a holiday to the Mexican calendar starting
+      from 2024; thanks to Fredrik Gerdin Börjesson.
+    - Added Chinese holidays for 2024; thanks to Cheng Li.
+    - Updated list of known ECB dates; thanks to GitHub user PaulXiCao.
+    - Added Thailandese and Taiwanese holidays up to 2024; thanks to
+      Fredrik Gerdin Börjesson.
+    - Added a one-time holiday to the South African calendar; thanks to
+      Francois Botha.
+
+    MODELS
+    - Added support for angled contour shift integrals to Heston model;
+      thanks to Klaus Spanderen.
+
+    INSTRUMENTS
+    - Allow different calendars and frequencies for different legs in
+      `MakeOIS` and `OISRateHelper`; thanks to Eugene Toder.
+    - Enabled negative payment lag in swap legs; thanks to GitHub user
+      Stoozy.
+
+    RANDOM NUMBERS
+    - Added Burley 2020 scrambled Sobol sequence generator; thanks to
+      Peter Caspers.
+
+    TESTS
+    - Use automated registration of unit tests; thanks to Siddharth
+      Mehrotra.
+    - Added a few fuzzing tests; thanks to Nathaniel Brough.
+    - Improved test coverage for a few classes; thanks to GitHub user
+      PaulXiCao.
+
+    DEPRECATED FEATURES
+    - **Removed** features deprecated in version 1.28:
+      - The overload of `CallableBond::impliedVolatility` taking an NPV as target.
+      - The constructor of `AmortizingFixedRateBond` taking a sinking frequency.
+      - The constructor of `AmortizingFixedRateBond` taking a vector of
+        `InterestRate` instances.
+      - The constructor of `FixedRateBond` taking start date, maturity
+        date etc. instead of a schedule.
+      - The constructor of `FixedRateBond` taking a vector of
+        `InterestRate` instances.
+      - The constructor of `FloatingRateBond` taking start date, maturity
+        date etc. instead of a schedule.
+      - The constructor of `CPICapFloor` taking a handle to an
+        interest-rate index.
+      - The `CPICapFloor::inflationIndex` method.
+      - The `infIndex` data member of the `CPICapFloor::arguments` class.
+      - A redundant constructor of `SabrSmileSection`.
+      - The empty headers
+        `ql/experimental/amortizingbonds/amortizingcmsratebond.hpp`,
+        `ql/experimental/amortizingbonds/amortizingfixedratebond.hpp` and
+        `ql/experimental/amortizingbonds/amortizingfloatingratebond.hpp`.
+    - Deprecated the constructor of `Currency` and `Currency::Data` taking
+      a format string, and the `Currency::format` method.
+
+    Thanks go also to Yi Jiang, Hoang Giap Vu, Jonathan Sweemer and
+    the XAD team for smaller fixes and improvements.
+
+    <strong>Release 1.32 - October 20th, 2023</strong>
+
+    PORTABILITY
+    - **Possibly breaking change:** the protected `evaluationDate_` data
+      member of the `SwaptionVolatilityDiscrete` class was renamed to
+      `cachedReferenceDate_`.
+    - **Future end of support:** we're targeting the future release 1.35
+      as the last to support Visual C++ 2015, g++ up to version 6.x, and
+      clang up to version 4; support for those compilers will be dropped
+      in release 1.36, about one year from now.  From that point onwards,
+      this will allows us to enable the use of C++17 in the code base.
+    - **Future end of support:** at the same time as the above, we'll also
+      remove the configure switch that allows to use `boost::tuple`,
+      `boost::function` and `boost::bind` instead of their `std`
+      counterparts; starting from this release, the `std` classes are
+      already the default.
+    - Reorganized the CMake presets; thanks to the XAD team.
+
+    CASH FLOWS
+    - All cash flows are now lazy; thanks to Peter Caspers.
+
+    INSTRUMENTS
+    - Overnight-indexed swaps can now have different schedules and
+      nominals on the two legs; thanks to Tom Anderson.
+    - Margrabe options, compound options and chooser options were moved
+      from experimental to core.
+    - Introduced common base class `FixedVsFloatingSwap` for vanilla swap
+      and overnight-indexed swaps; this will be used in the future to help
+      a few existing swap engines support OIS.
+    - Added optional `redemptions` argument to amortizing bond
+      constructors.  This allows them to be used for pools of loans where a
+      certain proportion of the underlying loans are subject to defaults
+      and losses.  Thanks to Gyan Sinha.
+    - It is now possible to manually prune the notification tree for swaps
+      and bonds if one knows that the cashflows won't change pricer;
+      thanks to Peter Caspers.
+
+    MODELS
+    - Fixed the algorithm to add instruments to the calibration set of the
+      Markov model; thanks to Peter Caspers for the fix and
+      Giuseppe Trapani for the heads-up.
+
+    TERM STRUCTURES
+    - Time-to-date conversion in some swaption volatility classes could
+      return the wrong date before the first exercise date; this is now
+      fixed, thanks to Peter Caspers.
+    - It's now possible to specify the maximum number of iteration for the
+      solver inside a bootstrapped term structure; thanks to Jonathan
+      Sweemer for the change and Daniel Ángeles Ortiz
+      for the heads-up.
+    - Reduced the number of notifications for bootstrap helpers; thanks to
+      Peter Caspers.
+
+    RANDOM NUMBERS
+    - Added the xoshiro265** random-number generator; thanks to Ralf
+      Konrad.  It is faster than the Mersenne Twister and
+      might be used as default in the future.
+
+    EXAMPLES
+    - The code of the examples has been modernized a bit; thanks to
+      Jonathan Sweemer.
+
+    PATTERNS
+    - Avoided a possible crash when using observables in a multi-threaded
+      setting; thanks to Peter Caspers.
+
+    DEPRECATED FEATURES
+    - **Removed** features deprecated in version 1.27:
+      - The `QL_NULL_INTEGER`, `QL_NULL_REAL`, `QL_NOEXCEPT`,
+        `QL_CONSTEXPR` and `QL_USE_STD_UNIQUE_PTR` macros.
+      - The `MultiCurveSensitivities` class.
+      - The `constant`, `identity`, `square`, `cube`, `fourth_power`,
+        `add`, `subtract`, `subtract_from`, `multiply_by`, `divide`,
+        `divide_by`, `less_than`, `greater_than`, `greater_or_equal_to`,
+        `not_zero`, `not_null`, `everywhere`, `nowhere`, `equal_within`,
+        `clipped_function`, `clip`, `composed_function`, `compose`,
+        `binary_compose3_function` and `compose3` functors.
+      - The `PdeShortRate`, `ShoutCondition`, `FDShoutCondition`,
+        `FDStepConditionEngine` and `FDEngineAdapter` classes from the old
+        finite-differences framework.
+      - The `dsd::inner_product` function.
+      - The `FDDividendEngineBase`, `FDDividendEngineMerton73`,
+        `FDDividendEngineShiftScale` and `FDDividendEngine` pricing
+        engines.
+      - The empty headers `ql/auto_ptr.hpp`, `ql/math/initializers.hpp`,
+        `ql/methods/finitedifferences/americancondition.hpp`,
+        `ql/methods/finitedifferences/onefactoroperator.hpp`,
+        `ql/pricingengines/vanilla/fddividendshoutengine.hpp`,
+        `ql/pricingengines/vanilla/fdshoutengine.hpp` and
+        `ql/utilities/disposable.hpp`.
+    - Deprecated the `StandardFiniteDifferenceModel`,
+      `StandardSystemFiniteDifferenceModel` and `StandardStepCondition`
+      typedefs; define your own typedefs if needed.
+    - Deprecated the `FDVanillaEngine`, `FDMultiPeriodEngine`,
+      `StepConditionSet`, `ParallelEvolverTraits`, `ParallelEvolver` and
+      `SampledCurve`classes and the `BSMTermOperator` and
+      `SampledCurveSet` typedefs; use the new finite-differences framework
+      instead.
+    - Deprecated the `QL_NULL_FUNCTION` macro; to check if a function is
+      empty, use it in a bool context instead.
+    - Deprecated the now empty headers
+      `ql/experimental/exoticoptions/margrabeoption.hpp`,
+      `ql/experimental/exoticoptions/analyticcomplexchooserengine.hpp`,
+      `ql/experimental/exoticoptions/analyticeuropeanmargrabeengine.hpp`,
+      `ql/experimental/exoticoptions/analyticcompoundoptionengine.hpp`,
+      `ql/experimental/exoticoptions/simplechooseroption.hpp`,
+      `ql/experimental/exoticoptions/compoundoption.hpp`,
+      `ql/experimental/exoticoptions/analyticamericanmargrabeengine.hpp`,
+      `ql/experimental/exoticoptions/analyticsimplechooserengine.hpp`,
+      `ql/experimental/exoticoptions/complexchooseroption.hpp`,
+      `ql/experimental/termstructures/multicurvesensitivities.hpp`,
+      `ql/methods/finitedifferences/shoutcondition.hpp`,
+      `ql/methods/finitedifferences/pdeshortrate.hpp`,
+      `ql/pricingengines/vanilla/fddividendengine.hpp`,
+      `ql/pricingengines/vanilla/fdstepconditionengine.hpp`,
+      `ql/pricingengines/vanilla/fdconditions.hpp` and
+      `ql/models/marketmodels/duffsdeviceinnerproduct.hpp`.
+
+    Thanks go also to Jonathan Sweemer, Ralf Konrad, Klaus Spanderen,
+    Peter Caspers, Tom Anderson, Fredrik Gerdin Börjesson, Guillaume
+    Horel and the XAD team for a number of smaller fixes and
+    improvements.
+
+    <strong>Release 1.31.1 - July 24th, 2023</strong>
+
+    QuantLib 1.31.1 is a bug-fix release for QuantLib 1.31.
+
+    It fixes a regression that could cause a segmentation fault when
+    bootstrapping an interest-rate curve using OIS rates.
+
+    <strong>Release 1.31 - July 18th, 2023</strong>
+
+    PORTABILITY
+    - **Future end of support:** as announced in the notes for the
+      previous release, after this release using `std::tuple`,
+      `std::function` and `std::bind` (instead of their `boost`
+      counterparts) will become the default.  If you're using `ext::tuple`
+      etc. in your code (which is suggested), this should be a transparent
+      change.  If not, you'll still be able to choose the `boost` versions
+      via a configure switch for a while; but we do suggest you start
+      using `ext::tuple` etc. in the meantime.
+    - The cmake build now creates (but doesn't install) a
+      `quantlib-config` script that can be used to retrieve flags for
+      compiling QuantLib-dependent projects; thanks to Christian
+      Köhnenkamp.
+    - A number of Boost classes and functions only used internally were
+      replaced by their standard-library equivalent; thanks to Jonathan
+      Sweemer.
+
+    PATTERNS
+    - **Optional change of behavior:** by default, the `LazyObject`
+      class forwards only one notification after recalculating and
+      silently ignores the others.  In some edge cases, this could
+      lead to objects not being updated.  It's now possible to enable
+      a different behavior where all notifications are forwarded; the
+      new behavior can be chosen at compile time via the configure
+      option `--disable-faster-lazy-objects` (or disabling
+      `QL_FASTER_LAZY_OBJECTS` in cmake or `userconfig.hpp`) or at run
+      time by calling
+      `LazyObject::Defaults::instance().alwaysForwardNotifications()`.
+      This might cause a slow down, so you're invited to try it out
+      and report on the mailing list.  If there are no problems, the
+      new behavior might become the default in future releases.  Also,
+      a new configure option `--enable-throwing-in-cycles`
+      (`QL_THROW_IN_CYCLES` in cmake or `userconfig.hpp`) is
+      optionally available; when both this option and the new behavior
+      are enabled, notifications cycles involving a lazy object will
+      throw an exception.  It is suggested to try enabling the option
+      and removing such loops, if any.  Thanks to Peter Caspers for
+      the change and to Ralf Konrad, Jonathan Sweemer and GitHub user
+      `djkrystul` for feedback.
+
+    DATE/TIME
+    - **Change of behavior:** when the end-of-month option is true, the
+      constructor of a schedule no longer adjust to the end of their month
+      the effective date and the termination date if they were passed
+      explicitly.  Thanks to Hristo Raykov.
+    - Added separate US SOFR calendar to manage days that are business
+      days for the US government bond market but in which SOFR doesn't
+      fix; for instance, Good Friday 2023.  Thanks to Tom
+      Anderson for reporting the issue.
+    - Fixed some rolling rules for South Korean calendar; thanks to Jonghee
+      Lee.
+    - Fixed incorrect 2023 holidays for Hong Kong calendar; thanks to
+      Fredrik Gerdin Börjesson.
+    - Added Hong Kong holidays for 2021-2024; thanks to Rémy Frèrebeau
+      and Binrui Dong.
+    - Added Singapore holidays for 2019-2023; thanks to Rémy Frèrebeau.
+    - Added Indian holidays for 2021-2025; thanks to Fredrik Gerdin
+      Börjesson.
+    - Added Taiwanese holidays for 2020-2023; thanks to GitHub user `jsmx`.
+    - Added a few election days for South African and South Korean
+      calendar; thanks to Fredrik Gerdin Börjesson.
+    - Updated Danish calendar; starting in 2024, General Prayer Day will
+      no longer be a holiday.  Thanks to Fredrik Gerdin Börjesson.
+    - Fixed a few holidays in Finland and Singapore calendars; Thanks to
+      Fredrik Gerdin Börjesson.
+    - More day counters (Act/364, Act/365.25, Act/366) now take into
+      account intraday resolution when enabled; thanks to Klaus Spanderen.
+
+    CASH FLOWS
+    - The accrued amount for CPI coupons is now correctly based on the
+      index ratio at settlement date.  An inspector for retrieving the
+      index ratio at a given date was also added.
+    - Enabled the use of normal volatilities in Hagan pricer for CMS
+      coupons; thanks to Andre Miemiec.
+    - Floating-rate coupons are now lazy; thanks to Peter Caspers.
+
+    INDEXES
+    - When passed a tenor of 7 or 14 business days, interest-rate indexes
+      would wrongly convert it to 1 or 2 weeks.  This is now fixed.
+      Thanks to Eugene Toder for reporting the issue.
+    - Added DESTR and SWESTR indexes; thanks to Fredrik Gerdin Börjesson.
+    - Added CORRA index; thanks to GitHub user `AND2797`.
+    - When an YoY inflation index is calculated as a ratio, the underlying
+      inflation index is available through an inspector and its fixings
+      are used to calculate the fixing of the YoY index.
+
+    INSTRUMENTS
+    - Instruments now register automatically with the global evaluation
+      date and are notified when it changes.  This makes sense in general
+      (if the evaluation date changes, you probably want to recalculate)
+      and can also help avoid some edge cases when lazy objects only
+      forward their first notification.
+    - Allowed passing a schedule without a regular tenor to callable
+      fixed-rate bonds; thanks to Hristo Raykov for the
+      fix and to GitHub user `OleBueker` for reporting the issue.
+    - Reorganized the constructors of FRA instruments; thanks to Jake Heke.
+
+    TERM STRUCTURES
+    - Ensures that upfront CDS helpers update correctly when the global
+      evaluation date changes; thanks to Andrea Pellegatta
+      for the fix and to GitHub user `bkhoor` for reporting the issue.
+    - Allow more maturities for SOFR quarterly contract in SOFR futures
+      rate helper; thanks to Jake Heke.
+    - Added constructor for date-dependent strikes to StrippedOptionlet;
+      thanks to Peter Caspers.
+
+    TEST SUITE
+    - Global settings (such as the evaluation date) are now restored and
+      index fixings are now cleaned automatically at the end of each test
+      case, making it unnecessary to clean them up manually.  Thanks to
+      Eugene Toder.
+    - The parallel unit-test runner now passes the `--run_test=<filter>`
+      option down to the underlying Boost.Test implementation.  Thanks to
+      Eugene Toder.
+
+    DEPRECATED FEATURES
+    - **Removed** features deprecated in version 1.26:
+      - The `CPICoupon` constructor taking a number of fixing days and its
+        `indexObservation`, `adjustedFixing` and `indexFixing(date)` methods.
+      - The `CPICashFlow` constructor taking a fixing date.
+      - The `withFixingDays` methods of `CPILeg`.
+      - The `ZeroInflationCashFlow` constructor taking a calendar and
+        business-day convention.
+      - The `LsmBasisSystem::PolynomType` typedef and the
+        `MakeMCAmericanEngine::withPolynomOrder` method.
+      - The `Observer::set_type` and `Observable::set_type` typedefs.
+      - The `Curve` class.
+      - The `LexicographicalView` class.
+      - The `Composite` class.
+      - The `DriftTermStructure` class.
+    - Deprecated the various `time_iterator` and `value_iterator` types in
+      `TimeSeries`, as well as methods returning them.  The more general
+      `const_iterator` and `const_reverse_iterator` types can be used
+      instead.
+    - Deprecated the constructors of `CPICoupon` taking a spread, as well
+      as its `spread` method, its protected `spread_` data member, and the
+      `withSpreads` methods of `CPILeg`.
+    - Deprecated the `adjustedFixing` method and the protected `spread_`
+      data member of `CPICouponPricer`.
+    - Renamed `BlackVanillaOptionPricer` to `MarketQuotedOptionPricer` and
+      deprecated the old name.
+    - Deprecated a couple of constructors of `ForwardRateAgreement`.
+    - Deprecated the constructor of `YoYInflationIndex` taking a `ratio`.
+      Also, deprecated explicit classes for YoY ratio indexes
+      `YYGenericCPIr`, `YYAUCPIr`, `YYEUHICPr`, `YYFRHICPr`, `YYUKRPIr`,
+      `YYUSCPIr` and `YYZACPIr`.
+    - Deprecated the `base`, `increment`, `decrement`, `advance` and
+      `distance_to` methods of the `step_iterator` class.
+
+    Thanks go also to Jonathan Sweemer, Jose Garcia, Jake Heke, Eugene
+    Toder, Binrui Dong, the Xcelerit Dev Team, Ralf Konrad, Tom
+    Anderson and Fredrik Gerdin Börjesson for a number of smaller
+    fixes and improvements.
+
+    <strong>Release 1.30 - April 19th, 2023</strong>
+
+    PORTABILITY
+    - **Future end of support:** as announced in the notes for the
+      previous release, after this release and the next, using
+      `std::tuple`, `std::function` and `std::bind` (instead of their
+      `boost` counterparts) will become the default.  If you're using
+      `ext::tuple` etc. in your code (which is suggested), this should be
+      a transparent change.  If not, you'll still be able to choose the
+      `boost` versions via a configure switch for a while; but we do
+      suggest you start using `ext::tuple` etc. in the meantime.
+    - CMake builds now use a stricter warning level by default; thanks to
+      Ralf Konrad.
+    - Is it now possible to use `std::any` and `std::optional` (and the
+      related `std::any_cast` and `std::nullopt`) instead of their `boost`
+      counterparts by setting new compilation switches; thanks to Jonathan
+      Sweemer.  Using the `std` classes requires C++17.  We
+      expect the `boost` classes to remain the default for a while, but in
+      the meantime we encourage to start using `ext::any` and
+      `ext::optional` in preparation for a new default.
+
+    DATE/TIME
+    - Good Friday 2023 is now a business day for the US government bond
+      calendar; thanks to Anastasiia Shumyk.
+    - Added specialized Australian calendar for ASX; thanks to Trent
+      Maetzold.
+    - Fixed Turkish holidays between 2019 and 2023; thanks to Fredrik
+      Gerdin Börjesson.
+    - Added a few missing holidays to Danish calendar; thanks to Fredrik
+      Gerdin Börjesson.
+    - Added the Matariki holiday to the New Zealand calendar; thanks to
+      Jake Heke.
+
+    CASHFLOWS
+    - Added a new equity cash flow class to model equity legs in total
+      return swaps; thanks to Marcin Rybacki.  Quanto
+      pricing is also supported.
+    - Added an overloaded constructor for CPI coupons that allows to
+      specify a base date instead of a base CPI value; thanks to Matthias
+      Groncki.
+
+    INSTRUMENTS
+    - Added a new total-return swap; thanks to Marcin Rybacki.
+      An equity-index class was also added to support
+      this instrument.
+    - The analytic engine for barrier options would return NaN for low
+      values of volatility; this is now fixed.
+    - The `VanillaOption` and `BarrierOption` classes can now be used to
+      model vanilla and barrier options with discrete dividends; the
+      future dividends (not being part of the terms and conditions of the
+      contract) should be passed to the pricing engine instead.
+    - Added analytical Greeks to Bjerksund-Stensland engine; thanks to
+      Klaus Spanderen.
+
+    INDEXES
+    - Added UKHICP inflation index; thanks to Fredrik Gerdin Börjesson.
+
+    TERM STRUCTURES
+    - Renamed `SwaptionVolCube1`, `SwaptionVolCube1x`, `SwaptionVolCube1a`
+      and `SwaptionVolCube2` to `SabrSwaptionVolatilityCube`,
+      `XabrSwaptionVolatilityCube`, `NoArbSabrSwaptionVolatilityCube` and
+      `InterpolatedSwaptionVolatilityCube`, respectively; thanks to
+      Ignacio Anguita.  The old names are deprecated but
+      still available for a few releases.
+    - Ensure that inflation curves are re-bootstrapped correctly when
+      seasonality is added.
+
+    MODELS
+    - Moved the Heston SLV model from experimental to main; thanks to
+      Klaus Spanderen.
+
+    MATH
+    - Added a few overloads to Array and Matrix operators taking rvalue
+      references for increased speed; thanks to Jonathan Sweemer.
+
+    DEPRECATED FEATURES
+    - **Removed** features deprecated in version 1.24:
+      - the protected `spreadLegValue_` data member of `BlackIborCouponPricer`;
+      - the `WulinYongDoubleBarrierEngine` alias for `SuoWangDoubleBarrierEngine`;
+      - the `settlementDate`, `incomeDiscountCurve`, `spotIncome`,
+        `spotValue`, `impliedYield` and `forwardValue` methods of
+        `ForwardRateAgreement`, as well as its protected
+        `underlyingIncome_`, `underlyingSpotValue_`, `settlementDays_`,
+        `payoff_` and `incomeDiscountCurve_` data members;
+      - constructors for `InflationTermStructure`,
+        `ZeroInflationTermStructure`, `InterpolatedZeroInflationCurve`,
+        `PiecewiseZeroInflationCurve` taking an `indexIsInterpolated`
+        parameter;
+      - the `indexIsInterpolated` method of `InflationTermStructure` and
+        its protected `indexIsInterpolated_` data member;
+      - some overloaded constructors of `SofrFutureRateHelper`.
+    - Deprecated the `DividendVanillaOption` and `DividendBarrierOption`
+      classes; use `VanillaOption` and `BarrierOption` instead (see
+      above).
+    - Deprecated the constructor of `AnalyticDividendEuropeanEngine` that
+      takes no dividend information; use the other overload instead.
+    - Deprecated the names `SwaptionVolCube1`, `SwaptionVolCube1x`,
+      `SwaptionVolCube1a` and `SwaptionVolCube2` (see above).
+    - Deprecated the protected `setCommon` method of
+      `CappedFlooredYoYInflationCoupon`.
+
+    Thanks go also to Jonathan Sweemer, the Xcelerit Dev
+    Team, Fredrik Gerdin Börjesson, Klaus
+    Spanderen and Peter Caspers for a number
+    of smaller fixes and improvements, and to Matthias Groncki
+    and GitHub user `lukey8767` for raising issues.
+
+    <strong>Release 1.29 - January 17th, 2023</strong>
+
+    PORTABILITY
+    - <b>End of support:</b> as announced in the notes for the previous
+      release, this release no longer manages thread-local singletons via
+      a user-provided `sessionId` function, and therefore the latter is no
+      longer needed.  Instead, the code now uses the built-in language
+      support for thread-local variables.  Thanks go to Peter Caspers.
+    - **Future end of support:** as announced in the notes for the
+      previous release, after the next couple of releases, using
+      `std::tuple`, `std::function` and `std::bind` (instead of their
+      `boost` counterparts) will become the default.  If you're using
+      `ext::tuple` etc. in your code (which is suggested), this should be
+      a transparent change.  If not, you'll still be able to choose the
+      `boost` versions via a configure switch for a while; but we do
+      suggest you start using `ext::tuple` etc. in the meantime.
+    - Replaced internal usage of `boost::thread` with `std::thread`;
+      thanks to Jonathan Sweemer.  This removed our last dependency on
+      Boost binaries and makes it possible to compile QuantLib using a
+      header-only Boost installation.
+    - On Windows, it is now possible to use the MSVC dynamic runtime when
+      using cmake by passing
+      `-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL`
+      on the command line; thanks to Jonathan Sweemer.  The
+      static runtime remains the default.
+    - It is now possible to build QuantLib with Intel's `icpx` compiler
+      using cmake; thanks to Jonathan Sweemer.  Note that in order to get
+      all the unit tests passing, `-fp-model=precise` must be added to
+      `CMAKE_CXX_FLAGS`.
+
+    DATE/TIME
+    - Updated Chinese holidays for 2023; thanks to Cheng Li.
+    - Added in-lieu holiday for Christmas 2022 to South-African calendar;
+      thanks to Joshua Hayes.
+    - Added King Charles III coronation holiday to UK calendar; thanks to
+      Fredrik Gerdin Börjesson.
+    - Added holiday for National Day of Mourning to Australian calendar;
+      thanks to Fredrik Gerdin Börjesson.
+
+    INSTRUMENTS
+    - Added high performance/precision American engine based on
+      fixed-point iteration for the exercise boundary; thanks to Klaus
+      Spanderen.
+    - Bonds with draw-down (i.e., increasing notionals) are now allowed;
+      thanks to Oleg Kulkov.
+    - Added `withIndexedCoupons` and `withAtParCoupons` methods to
+      `MakeSwaption` for easier initialization; thanks to Ralf Konrad.
+    - It is now possible to use the same pricing engine for vanilla and
+      dividend vanilla options, or for barrier and dividend barrier
+      options.
+
+    INDEXES
+    - Creating a zero inflation index as "interpolated" is now deprecated;
+      thanks to Ralf Konrad.  The index should only return
+      monthly fixings.  Interpolation is now the responsibility of
+      inflation-based coupons.
+
+    TERM STRUCTURES
+    - The `ConstantCPIVolatility` constructor can now take a handle to a
+      volatility quote, instead of just an immutable number.
+
+    DEPRECATED FEATURES
+    - <b>Removed</b> features deprecated in version 1.24:
+      - the `createAtParCoupons`, `createIndexedCoupons` and
+        `usingAtParCoupons` methods of `IborCoupon`;
+      - the `RiskyBond` class and its subclasses `RiskyFixedBond` and
+        `RiskyFloatingBond`;
+      - the `CrossCurrencyBasisSwapRateHelper` typedef;
+      - the `termStructure_` data member of `BlackCalibrationHelper`;
+      - the static `baseCurrency` and `conversionType` data members of `Money`;
+      - the `nominalTermStructure` method and the `nominalTermStructure_`
+        data member of `InflationTermStructure`;
+      - the constructor of the `UnitedStates` calendar not taking an
+        explicit market.
+    - Deprecated the `argument_type`, `first_argument_type`,
+      `second_argument_type` and `result_type` typedefs in a number of
+      classes; use `auto` or `decltype` instead.
+    - Deprecated the constructors of `InflationIndex`,
+      `ZeroInflationIndex`, `FRHICP`, `ZACPI`, `UKRPI`, `EUHICP`,
+      `EUHICPXT`, `USCPI`, `AUCPI` and `GenericCPI` taking an
+      `interpolated` parameter; use another constructor.
+    - Deprecated the `interpolated` method and the `interpolated_` data
+      member of `InflationIndex`.
+    - Deprecated the `ThreadKey` typedef.  It was used in the signature of
+      `sessionId`, which is no longer needed after the changes in the
+      `Singleton` implementation.
+    - Deprecated the `rateCurve_` data member of the
+      `InflationCouponPricer` base class.  If you need it, provide it in
+      your derived class.
+    - Deprecated the `npvbps` function taking NPV and BPS as references.
+      Use the overload returning a pair of `Real`s.
+
+    Thanks go also to Matthias Groncki, Jonathan Sweemer
+    and Nijaz Kovacevic for a number of smaller fixes
+    and improvements, to the Xcelerit Dev Team for
+    improvements to the automated CI builds, and to Vincenzo Ferrazzanno
+    and GitHub users alienbrett, xuruilong100 and philippb90 for raising issues.
+
+    <strong>Release 1.28 - October 25th, 2022</strong>
+
+    PORTABILITY
+    - <b>New language standard:</b> as announced in the notes for the
+      previous release, this release started using some C++14 syntax.
+      This should be supported by most compilers released in the past
+      several years.
+    - <b>End of support:</b> as announced in the notes for the previous
+      release, this release is the last to manage thread-local singletons
+      via a user-provided `sessionId` function.  Future releases will use
+      the built-in language support for thread-local variables.
+    - <b>Future end of support:</b> after the next two or three releases,
+      using `std::tuple`, `std::function` and `std::bind` (instead of
+      their `boost` counterparts) will become the default.  If you're
+      using `ext::tuple` etc. in your code (which is suggested), this
+      should be a transparent change.  If not, you'll still be able to
+      choose the `boost` versions via a configure switch for a while.
+
+    DATE/TIME
+    - Added Act/366 and Act/365.25 day counters; thanks to Ignacio Anguita.
+    - Added H.M. the Queen's funeral to the UK calendars; thanks to Tomass
+      Wilson.
+
+    INSTRUMENTS
+    - Amortizing bonds were moved out of the experimental folder.  Also, a
+      couple of utility functions were provided to calculate amortization
+      schedules and notionals.
+
+    PRICING ENGINES
+    - Fixed results from `COSHestonEngine` in the case of an option with
+      short time to expiration and deep ITM or deep OTM strike prices;
+      thanks to Ignacio Anguita.
+    - The ISDA engine for CDS could calculate the fair upfront with the
+      wrong sign; this is now fixed, thanks to Gualtiero Chiaia.
+
+    TERM STRUCTURES
+    - The constructor for `OISRateHelper` now allows to specify the
+      `endOfMonth` parameter; thanks to Guillaume Horel.
+
+    FINITE DIFFERENCES
+    - Fixed computation of cds boundaries in `LocalVolRNDCalculator`;
+      thanks to GitHub user mdotlic.
+
+    EXPERIMENTAL FOLDER
+
+    The `ql/experimental` folder contains code whose interface is not
+    fully stable, but is released in order to get user
+    feedback. Experimental classes make no guarantees of backward
+    compatibility; their interfaces might change in future releases.
+
+    - <b>Breaking change</b>: the constructor of the
+      `CPICapFloorTermPriceSurface` class now also takes an explicit
+      interpolation type.
+    - <b>Possibly breaking</b>: the protected constructor for `CallableBond`
+      changes its arguments.  If you inherited from this class, you'll
+      need to update your code.  If you're using the existing derived bond
+      classes, the change will be transparent.
+    - Pricing engines for callable bonds worked incorrectly when the face
+      amount was not 100. This is now fixed.
+    - The `impliedVolatility` method for callable bonds was taking a
+      target NPV, not a price. This implementation is now deprecated, and
+      a new overload was added taking a price in base 100.
+
+    DEPRECATED FEATURES
+    - <b>Removed</b> features deprecated in version 1.23:
+      - the constructors of `ZeroCouponInflationSwap` and
+        `ZeroCouponInflationSwapHelper` missing an explicit CPI
+        interpolation type;
+      - the constructors of `ActualActual` and `Thirty360` missing an
+        explicit choice of convention, and the constructor of `Thirty360`
+        passing an `isLastPeriod` boolean flag.
+    - Deprecated the constructors of `FixedRateBond` taking an
+      `InterestRate` instance or not taking a `Schedule` instance.
+    - Deprecated the constructor of `FloatingRateBond` not taking a
+      `Schedule` instance.
+    - Deprecated the constructors of `AmortizingFixedRateBond` taking a
+      sinking frequency or a vector of `InterestRate` instances.
+    - Deprecated the constructor of `CPICapFloor` taking a `Handle` to an
+      inflation index, and its `inflationIndex` method returning a `Handle`.
+      New versions of both were added using `shared_ptr` instead.
+    - Deprecated one of the constructors of `SabrSmileSection`; a new
+      version was added also taking an optional reference date.
+    - Deprecated the old `impliedVolatility` method for callable bonds;
+      see above.
+
+    Thanks go also to Konstantin Novitsky, Peter Caspers, Klaus
+    Spanderen, Fredrik Gerdin Börjesson and Dirk Eddelbuettel for a
+    number of smaller fixes, and to Jonathan Sweemer for various
+    improvements to the automated CI builds.
+
+    <strong>Release 1.27.1 - August 30th, 2022</strong>
+
+    QuantLib 1.27.1 is a bug-fix release.
+
+    It restores the old implementation of `Null<T>` which was replaced
+    in version 1.27 with a new one; the latter was reported to cause
+    an internal compiler error under Visual C++ 2022 for some client code.
+    The new version (which avoids some problems when replacing `Real`
+    with some AAD-enabled types) is still available; depending on how
+    you compile QuantLib, it can be enabled through the
+    `--enable-null-as-functions` configure flag, the cmake variable
+    `QL_NULL_AS_FUNCTIONS`, or the define with the same name in the
+    `ql/userconfig.hpp` header.
+
+    <strong>Release 1.27 - July 22nd, 2022</strong>
+
+    PORTABILITY
+    - <b>Removed support:</b> as announced in the notes for the previous
+      release, support for Visual Studio 2013 was dropped.
+    - <b>End of support:</b> as announced in the notes for the previous
+      release, this release will be the last to avoid C++14 syntax.
+      Allowing the newer (but still oldish) standard should still support
+      most compilers released in the past several years.
+    - <b>Future end of support:</b> this release and the next will be the
+      last to manage thread-local singletons via a user-provided
+      `sessionId` function.  Future releases will use the built-in
+      language support for thread-local variables.
+    - The `Real` type is now used consistently throughout the codebase,
+      thanks to the Xcelerit dev team.  This, along with
+      other changes, allows its default definition to `double` to be
+      replaced with one of the available third-party AAD types.
+    - The test suite is now built using the header-only version of
+      Boost.Test, thanks to Jonathan Sweemer.  This might
+      simplify Boost installation for some users, since in the default
+      configuration QuantLib now only needs the Boost headers.
+    - Replaced some Boost facilities with the corresponding C++11
+      counterparts; thanks to Klaus Spanderen and
+      Jonathan Sweemer.
+
+    DATE/TIME
+    - Fixed the behavior of a couple of Australian holidays; thanks to
+      Pradeep Krishnamurthy and Fredrik Gerdin Börjesson.
+
+    INSTRUMENTS
+    - Added the Turnbull-Wakeman engine for discrete Asian options; thanks
+      to Fredrik Gerdin Börjesson for the main engine code
+      and to Jack Gillett for the Greeks.
+    - Added more validation to barrier options; thanks to Jonathan Sweemer.
+
+    MODELS
+    - Fixed the start date of the underlying swap in swaption calibration
+      helpers; thanks to Peter Caspers.
+    - Fixed parameter checks in SVI volatility smiles; thanks to Fredrik
+      Gerdin Börjesson.
+
+    PATTERNS
+    - Avoid possible iterator invalidation while notifying observers;
+      thanks to Klaus Spanderen.
+
+    DEPRECATED FEATURES
+    - <b>Removed</b> the `--enable-disposable` and `--enable-std-unique-ptr`
+      configure switches.
+    - <b>Removed</b> features deprecated in version 1.22:
+      - the unused `AmericanCondition` and `FDAmericanCondition` classes;
+      - the old-style FD shout and dividend shout engines;
+      - the unused `OneFactorOperator` class;
+      - the `io::to_integer` function;
+      - the `ArrayProxy` and `MatrixProxy` classes.
+    - Deprecated the `QL_NOEXCEPT` and `QL_CONSTEXPR` macros.
+    - Deprecated the `QL_NULL_INTEGER` and `QL_NULL_REAL` macros.
+    - Deprecated some unused parts of the old-style FD framework:
+      - the `PdeShortRate` class;
+      - the `ShoutCondition` and `FDShoutCondition` classes;
+      - the `FDDividendEngineBase`, `FDDividendEngineMerton73`,
+        `FDDividendEngineShiftScale` and `FDDividendEngine` classes;
+      - the `FDStepConditionEngine` and `FDEngineAdapter` classes.
+    - Deprecated a number of function objects in the
+      `ql/math/functional.hpp` header.
+    - Deprecated the unused `MultiCurveSensitivities` class.
+    - Deprecated the unused `inner_product` function.
+
+    Thanks go also to Ryan Russell for documentation fixes.
+
+    <strong>Release 1.26 - April 20th, 2022</strong>
+
+    PORTABILITY
+    - <b>End of support:</b> as announced in the notes for the previous
+      release, this release is the last to support Visual Studio 2013.
+    - <b>End of support:</b> this release is the last to support the
+      long-deprecated configure switches `--enable-disposable` and
+      `--enable-std-unique-ptr`.  From the next release, `Disposable` will
+      always be disabled (and eventually removed) and `std::unique_ptr`
+      will always be used instead of `std::auto_ptr`.  This has already
+      been the default in the last few releases.
+    - <b>Future end of support:</b> this release and the next will be the
+      last to avoid C++14 syntax.  This should still support most
+      compilers released in the past several years (except for Visual
+      Studio 2013, which we're already dropping in this release).
+    - If tagged libraries are specified, as is the default on Windows,
+      CMake now gives the built libraries the same names as the Visual
+      Studio solution (for instance, `QuantLib-x64-mt-s` instead of
+      `QuantLib-mt-s-x64`) so that the pragma in `ql/auto_link.hpp` works.
+    - QuantLib can now also be built as a subproject in a larger CMake
+      build (thanks to Peter Caspers).
+
+    DATE/TIME
+    - When printed, `Period` instances now display transparently what
+      their units and length are, instead of doing more fancy formatting
+      (e.g., "16 months" is now displayed instead of "1 year 4 months").
+      Also, `Period` instances that compare as equal now return the same
+      period from their `normalize` method.
+
+    INDEXES
+    - Added Tona (Tokyo overnight average) index (thanks to Jonghee Lee).
+    - Added static `laggedFixing` method to `CPI` structure which provides
+      interpolation of inflation index fixings.
+
+    CASH FLOWS
+    - The `CPICoupon` and `CPICashFlow` classes now take into account the
+      correct dates and observation lag for interpolation.
+
+    INSTRUMENTS
+    - Added a `BondForward` class that generalizes the existing
+      `FixedRateBondForward` to any kind of bond (thanks to Marcin
+      Rybacki).
+    - Avoided unexpected jumps in callable bond OAS (thanks to Ralf Konrad).
+    - Fixed `TreeSwaptionEngine` mispricing when adjusting the instrument
+      schedule to a near exercise date (thanks to Ralf Konrad).
+    - the `ForwardRateAgreement` class now works correctly without an
+      explicit discount curve.
+
+    TERM STRUCTURES
+    - Dates explicitly passed to `InterpolatedZeroInflationCurve` are no
+      longer adjusted automatically to the beginning of their inflation period.
+
+    DEPRECATED FEATURES
+    - <b>Removed</b> the `MCDiscreteAveragingAsianEngine` class,
+      deprecated in version 1.21.
+    - Deprecated the `LsmBasisSystem::PolynomType` typedef, now renamed to
+      `PolynomialType`; `MakeMCAmericanEngine::withPolynomOrder` was also
+      deprecated and renamed to `withPolynomialOrder`.
+    - Deprecated the `ZeroInflationCashFlow` constructor taking an unused
+      calendar and business-day convention.
+    - Deprecated the `CPICoupon` constructor taking a number of fixing
+      days, as well as the `CPICoupon::indexObservation`,
+      `CPICoupon::adjustedFixing` and `CPICoupon::indexFixing` methods
+      and the `CPILeg::withFixingDays` method.
+    - Deprecated the `CPICashFlow` constructor taking a precalculated fixing date and a frequency.
+    - Deprecated the `Observer::set_type` and `Observable::set_type` typedefs.
+    - Deprecated the unused `Curve` class.
+    - Deprecated the unused `LexicographicalView` class.
+    - Deprecated the unused `Composite` class.
+    - Deprecated the unused `DriftTermStructure` class.
+
+    Thanks go also to Matthias Groncki, Jonathan Sweemer and Li Zhong
+    for smaller fixes, enhancements and bug reports.
+
+    <strong>Release 1.25 - January 18th, 2022</strong>
+
+    PORTABILITY
+    - <b>End of support:</b> this release and the next will be the last
+      two to support Visual Studio 2013.
+    - Added a few CMake presets for building the library (thanks to
+      Jonathan Sweemer).
+    - When built and installed through CMake, the library now installs
+      a `QuantLibConfig.cmake` file that allows other CMake projects
+      to find and use QuantLib (thanks to Jonathan Sweemer).
+
+    CASHFLOWS
+    - Fixed the accrual calculation in overnight-indexed coupons
+      (thanks to Mohammad Shojatalab).
+    - Fixed fixing-days usage in `SubPeriodsCoupon` class (thanks to
+      Marcin Rybacki).
+    - IBOR coupons fixed in the past no longer need a forecast curve
+      to return their amount.
+
+    INDEXES
+
+    - <b>Important change:</b> inflation indexes inherited from the
+      `ZeroInflationIndex` class no longer rely on their forecast
+      curve for interpolation.  For coupons that already took care of
+      interpolation (as in the case of `CPICoupon` and
+      `ZeroInflationCashFlow`) this should not change the results. In
+      other cases, figures will change but should be more correct as
+      the interpolation is now performed according to market
+      conventions.  Also, most inflation curves now assume that the
+      index is not implemented.  Year-on-year inflation indexes and
+      curves are not affected.
+
+    INSTRUMENTS
+    - <b>Breaking change:</b> convertible bonds were moved out of the
+      `ql/experimental` folder.  Also, being market values and not
+      part of the contract, dividends and credit spread were moved
+      from the bond to the `BinomialConvertibleEngine` class (thanks
+      to Lew Wei Hao).
+    - The `ForwardRateAgreement` no longer inherits from `Forward`.
+      This also made it possible to implement the `amount` method
+      returning the expected cash settlement (thanks to Lew Wei Hao).
+      The methods from `Forward` were kept available but deprecated so
+      code using them won't break.  Client code might break if it
+      performed casts to `Forward`.
+
+    MODELS
+    - Fixed formula for discount bond option in CIR++ model (thanks to
+      Magnus Mencke).
+
+    TERM STRUCTURES
+    - It is now possible to use normal volatilities in SABR smile
+      sections, and thus in the `SabrSwaptionVolatilityCube` class (thanks to
+      Lew Wei Hao).
+
+    DATE/TIME
+    - Added Chinese holidays for 2022 (thanks to Cheng Li).
+
+    CURRENCIES
+    - Added a number of African, American, Asian and European
+      currencies from Quaternion's `QuantExt` project (thanks to Ole
+      Bueker).
+
+    EXPERIMENTAL FOLDER
+
+    The `ql/experimental` folder contains code whose interface is not
+    fully stable, but is released in order to get user
+    feedback. Experimental classes make no guarantees of backward
+    compatibility; their interfaces might change in future releases.
+
+    - Added experimental rate helpers for LIBOR-LIBOR and
+      Overnight-LIBOR basis swaps.
+    - Renamed `WulinYongDoubleBarrierEngine` to
+     `SuoWangDoubleBarrierEngine` (thanks to Adityakumar Sinha for the
+     fix and Ruilong Xu for the heads-up).
+
+    DEPRECATED FEATURES
+    - Deprecated the constructors of zero-coupon inflation term
+      structures taking an `indexIsInterpolated` boolean argument.
+    - Deprecated a number of methods in the `ForwardRateAgreement`
+      class that used to be inherited from `Forward`.
+    - Deprecated a couple of constructors in the
+      `SofrFutureRateHelper` class.
+    - Deprecated the `WulinYongDoubleBarrierEngine` alias for
+      `SuoWangDoubleBarrierEngine`.
+    - Deprecated the protected `spreadLegValue_` data member in the
+      `BlackIborCouponPricer` class.
+
+    Thanks go also to Tom Anderson, Francois Botha, Matthew Kolbe,
+    Benson Luk, Marcin Rybacki, Henning Segger, Klaus Spanderen, and
+    GitHub users jxcv0 and azsrz for smaller fixes, enhancements and
+    bug reports.
+
     <strong>Release 1.24 - October 2021</strong>
 
     PORTABILITY
@@ -1840,7 +3207,7 @@
       the reference due to adjustments (for instance, when the protection
       starts on a Saturday and the reference is rolled to the following
       Monday).
-    - Pass correct ATM forward rate to smile section of SwaptionVolCube2
+    - Pass correct ATM forward rate to smile section of InterpolatedSwaptionVolatilityCube
       (thanks to Peter Caspers).
     - Added exogenous discount to OptionletStripper1 (thanks to Peter
       Caspers).
@@ -3001,7 +4368,7 @@
       ISDA definitions.
 
     MATH
-    - Added rounding algorythms as per OMG enumeration/definition.
+    - Added rounding algorithms as per OMG enumeration/definition.
 
     TEST SUITE
     - Moved to Boost unit test framework. CppUnit is no longer needed.

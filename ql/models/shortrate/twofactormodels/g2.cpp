@@ -40,7 +40,7 @@ namespace QuantLib {
         eta_   = ConstantParameter(eta,   PositiveConstraint());
         rho_   = ConstantParameter(rho,   BoundaryConstraint(-1.0, 1.0));
 
-        generateArguments();
+        G2::generateArguments();
 
         registerWith(termStructure);
     }
@@ -160,7 +160,7 @@ namespace QuantLib {
             Size i;
             for (i=0; i<size_; i++) {
                 Real tau = (i==0 ? t_[0] - T_ : t_[i] - t_[i-1]);
-                Real c = (i==size_-1 ? (1.0+rate_*tau) : rate_*tau);
+                Real c = (i==size_-1 ? Real(1.0+rate_*tau) : rate_*tau);
                 lambda[i] = c*A_[i]*std::exp(-Ba_[i]*x);
             }
 
@@ -218,6 +218,9 @@ namespace QuantLib {
     Real G2::swaption(const Swaption::arguments& arguments,
                       Rate fixedRate, Real range, Size intervals) const {
 
+        QL_REQUIRE(arguments.nominal != Null<Real>(),
+                   "non-constant nominals are not supported yet");
+
         Date settlement = termStructure()->referenceDate();
         DayCounter dayCounter = termStructure()->dayCounter();
         Time start = dayCounter.yearFraction(settlement,
@@ -238,7 +241,7 @@ namespace QuantLib {
         Real upper = function.mux() + range*function.sigmax();
         Real lower = function.mux() - range*function.sigmax();
         SegmentIntegral integrator(intervals);
-        return arguments.nominal*w*termStructure()->discount(start)*
+        return arguments.nominal * w * termStructure()->discount(start) *
             integrator(function, lower, upper);
     }
 

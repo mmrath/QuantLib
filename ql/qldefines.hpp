@@ -50,7 +50,7 @@
    The idea is to provide a hook for defining QL_REAL and at the
    same time including any necessary headers for the new type.
 */
-#define INCLUDE_FILE(F) INCLUDE_FILE__(F)
+#define INCLUDE_FILE(F) INCLUDE_FILE_(F)
 #define INCLUDE_FILE_(F) #F
 #ifdef QL_INCLUDE_FIRST
 #    include INCLUDE_FILE(QL_INCLUDE_FIRST)
@@ -168,7 +168,7 @@
 /*! \def QL_EPSILON
     Defines the machine precision for operations over doubles
 */
-#include <boost/limits.hpp>
+#include <limits>
 // limits used as such
 #define QL_MIN_INTEGER         ((std::numeric_limits<QL_INTEGER>::min)())
 #define QL_MAX_INTEGER         ((std::numeric_limits<QL_INTEGER>::max)())
@@ -176,13 +176,16 @@
 #define QL_MAX_REAL            ((std::numeric_limits<QL_REAL>::max)())
 #define QL_MIN_POSITIVE_REAL   ((std::numeric_limits<QL_REAL>::min)())
 #define QL_EPSILON             ((std::numeric_limits<QL_REAL>::epsilon)())
-// specific values---these should fit into any Integer or Real
-#define QL_NULL_INTEGER        ((std::numeric_limits<int>::max)())
-#define QL_NULL_REAL           ((std::numeric_limits<float>::max)())
 /*! @} */
 
 /*! @}  */
 
+
+// For the time being we're keeping a QL_DEPRECATED macro because
+// of <https://stackoverflow.com/questions/38378693/>.  We need to
+// use it to deprecate constructors until we drop support for VC++2015.
+// Other features (methods, typedefs etc.) can use [[deprecated]] and
+// possibly add a message.
 
 // emit warning when using deprecated features
 // clang-format off
@@ -193,13 +196,6 @@
         __pragma(warning(disable : 4996))
 #    define QL_DEPRECATED_ENABLE_WARNING \
         __pragma(warning(pop))
-#elif defined(__GNUC__)
-#    define QL_DEPRECATED __attribute__((deprecated))
-#    define QL_DEPRECATED_DISABLE_WARNING                               \
-        _Pragma("GCC diagnostic push")                                  \
-        _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
-#    define QL_DEPRECATED_ENABLE_WARNING \
-        _Pragma("GCC diagnostic pop")
 #elif defined(__clang__)
 #    define QL_DEPRECATED __attribute__((deprecated))
 #    define QL_DEPRECATED_DISABLE_WARNING                                 \
@@ -207,6 +203,13 @@
         _Pragma("clang diagnostic ignored \"-Wdeprecated-declarations\"")
 #    define QL_DEPRECATED_ENABLE_WARNING \
         _Pragma("clang diagnostic pop")
+#elif defined(__GNUC__)
+#    define QL_DEPRECATED __attribute__((deprecated))
+#    define QL_DEPRECATED_DISABLE_WARNING                               \
+        _Pragma("GCC diagnostic push")                                  \
+        _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#    define QL_DEPRECATED_ENABLE_WARNING \
+        _Pragma("GCC diagnostic pop")
 #else
 // we don't know how to enable it, just define the macros away
 #    define QL_DEPRECATED
@@ -214,16 +217,5 @@
 #    define QL_DEPRECATED_ENABLE_WARNING
 #endif
 // clang-format on
-
-
-// until we stop supporting Visual C++ 2013
-#if defined(QL_PATCH_MSVC_2013)
-#  define QL_NOEXCEPT
-#  define QL_CONSTEXPR
-#else
-#  define QL_NOEXCEPT noexcept
-#  define QL_CONSTEXPR constexpr
-#endif
-
 
 #endif

@@ -40,14 +40,12 @@
 #include <ql/math/optimization/simplex.hpp>
 #include <ql/math/randomnumbers/haltonrsg.hpp>
 #include <ql/pricingengines/blackformula.hpp>
+#include <ql/termstructures/volatility/volatilitytype.hpp>
 #include <ql/utilities/dataformatters.hpp>
 #include <ql/utilities/null.hpp>
 #include <utility>
-#include <ql/termstructures/volatility/volatilitytype.hpp>
 
-namespace QuantLib {
-
-namespace detail {
+namespace QuantLib::detail {
 
 template <typename Model> class XABRCoeffHolder {
   public:
@@ -57,8 +55,7 @@ template <typename Model> class XABRCoeffHolder {
                     const std::vector<bool>& paramIsFixed,
                     std::vector<Real> addParams)
     : t_(t), forward_(forward), params_(params), paramIsFixed_(paramIsFixed.size(), false),
-      weights_(std::vector<Real>()), error_(Null<Real>()), maxError_(Null<Real>()),
-      XABREndCriteria_(EndCriteria::None), addParams_(std::move(addParams)) {
+      error_(Null<Real>()), maxError_(Null<Real>()), addParams_(std::move(addParams)) {
         QL_REQUIRE(t > 0.0, "expiry time must be positive: " << t
                                                              << " not allowed");
         QL_REQUIRE(params.size() == Model().dimension(),
@@ -92,7 +89,7 @@ template <typename Model> class XABRCoeffHolder {
     std::vector<Real> weights_;
     /*! Interpolation results */
     Real error_, maxError_;
-    EndCriteria::Type XABREndCriteria_;
+    EndCriteria::Type XABREndCriteria_ = EndCriteria::None;
     /*! Model instance (if required) */
     ext::shared_ptr<typename Model::type> modelInstance_;
     /*! additional parameters */
@@ -100,8 +97,8 @@ template <typename Model> class XABRCoeffHolder {
 };
 
 template <class I1, class I2, typename Model>
-class XABRInterpolationImpl : public Interpolation::templateImpl<I1, I2>,
-                              public XABRCoeffHolder<Model> {
+class XABRInterpolationImpl final : public Interpolation::templateImpl<I1, I2>,
+                                    public XABRCoeffHolder<Model> {
   public:
     XABRInterpolationImpl(const I1& xBegin,
                           const I1& xEnd,
@@ -165,7 +162,7 @@ class XABRInterpolationImpl : public Interpolation::templateImpl<I1, I2>,
         // there is nothing to optimize
         if (std::accumulate(this->paramIsFixed_.begin(),
                             this->paramIsFixed_.end(), true,
-                            std::logical_and<bool>())) {
+                            std::logical_and<>())) {
             this->error_ = interpolationError();
             this->maxError_ = interpolationMaxError();
             this->XABREndCriteria_ = EndCriteria::None;
@@ -191,7 +188,7 @@ class XABRInterpolationImpl : public Interpolation::templateImpl<I1, I2>,
             do {
 
                 if (iterations > 0) {
-                    HaltonRsg::sample_type s = halton.nextSequence();
+                    const auto& s = halton.nextSequence();
                     Model().guess(guess, this->paramIsFixed_, this->forward_,
                                   this->t_, s.value, this->addParams_);
                     for (Size i = 0; i < this->paramIsFixed_.size(); ++i)
@@ -259,7 +256,7 @@ class XABRInterpolationImpl : public Interpolation::templateImpl<I1, I2>,
     }
 
     // calculate weighted differences
-    Disposable<Array> interpolationErrors() const {
+    Array interpolationErrors() const {
         Array results(this->xEnd_ - this->xBegin_);
         I1 x = this->xBegin_;
         Array::iterator r = results.begin();
@@ -302,7 +299,7 @@ class XABRInterpolationImpl : public Interpolation::templateImpl<I1, I2>,
             return xabr_->interpolationSquaredError();
         }
 
-        Disposable<Array> values(const Array& x) const override {
+        Array values(const Array& x) const override {
             const Array y = Model().direct(x, xabr_->paramIsFixed_,
                                            xabr_->params_, xabr_->forward_);
             for (Size i = 0; i < xabr_->params_.size(); ++i)
@@ -324,7 +321,6 @@ class XABRInterpolationImpl : public Interpolation::templateImpl<I1, I2>,
     VolatilityType volatilityType_;
 };
 
-} // namespace detail
 } // namespace QuantLib
 
 #endif

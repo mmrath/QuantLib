@@ -28,6 +28,7 @@
 #include <ql/termstructures/yield/piecewiseyieldcurve.hpp>
 #include <ql/time/calendars/weekendsonly.hpp>
 #include <ql/time/daycounters/actual360.hpp>
+#include <ql/optional.hpp>
 #include <utility>
 
 namespace QuantLib {
@@ -35,7 +36,7 @@ namespace QuantLib {
     IsdaCdsEngine::IsdaCdsEngine(Handle<DefaultProbabilityTermStructure> probability,
                                  Real recoveryRate,
                                  Handle<YieldTermStructure> discountCurve,
-                                 const boost::optional<bool>& includeSettlementDateFlows,
+                                 const ext::optional<bool>& includeSettlementDateFlows,
                                  const NumericalFix numericalFix,
                                  const AccrualBias accrualBias,
                                  const ForwardsInCouponPeriod forwardsInCouponPeriod)
@@ -162,7 +163,7 @@ namespace QuantLib {
         Real P0 = discountCurve_->discount(d0);
         Real Q0 = probability_->survivalProbability(d0);
         Date d1;
-        std::vector<Date>::const_iterator it =
+        auto it =
             std::upper_bound(nodes.begin(), nodes.end(), effectiveProtectionStart);
 
         for(;it != nodes.end(); ++it) {
@@ -193,7 +194,7 @@ namespace QuantLib {
             Q0 = Q1;
         }
         protectionNpv *= arguments_.claim->amount(
-            Null<Date>(), arguments_.notional, recoveryRate_);
+            Date(), arguments_.notional, recoveryRate_);
 
         results_.defaultLegNPV = protectionNpv;
 
@@ -231,16 +232,16 @@ namespace QuantLib {
                 localNodes.push_back(start);
                 //add intermediary nodes, if any
                 if (forwardsInCouponPeriod_ == Piecewise) {
-                    std::vector<Date>::const_iterator it0 =
+                    auto it0 =
                         std::upper_bound(nodes.begin(), nodes.end(), start);
-                    std::vector<Date>::const_iterator it1 =
+                    auto it1 =
                         std::lower_bound(nodes.begin(), nodes.end(), end);
                     localNodes.insert(localNodes.end(), it0, it1);
                 }
                 localNodes.push_back(end);
 
                 Real defaultAccrThisNode = 0.;
-                std::vector<Date>::const_iterator node = localNodes.begin();
+                auto node = localNodes.begin();
                 Real t0 = discountCurve_->timeFromReference(*node);
                 Real P0 = discountCurve_->discount(*node);
                 Real Q0 = probability_->survivalProbability(*node);
@@ -307,14 +308,19 @@ namespace QuantLib {
                 arguments_.accrualRebate->amount();
         }
 
-        Real upfrontSign = Protection::Seller != 0U ? 1.0 : -1.0;
-
-        if (arguments_.side == Protection::Seller) {
+        Real upfrontSign = 1.0;
+        switch (arguments_.side) {
+          case Protection::Seller:
             results_.defaultLegNPV *= -1.0;
             results_.accrualRebateNPV *= -1.0;
-        } else {
+            break;
+          case Protection::Buyer:
             results_.couponLegNPV *= -1.0;
-            results_.upfrontNPV *= -1.0;
+            results_.upfrontNPV   *= -1.0;
+            upfrontSign = -1.0;
+            break;
+          default:
+            QL_FAIL("unknown protection side");
         }
 
         results_.value = results_.defaultLegNPV + results_.couponLegNPV +

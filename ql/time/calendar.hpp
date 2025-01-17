@@ -96,6 +96,9 @@ namespace QuantLib {
         /*! Returns the set of removed holidays for the given calendar */
         const std::set<Date>& removedHolidays() const;
 
+        /*! Clear the set of added and removed holidays */
+        void resetAddedAndRemovedHolidays();
+
         bool isBusinessDay(const Date& d) const;
         /*! Returns <tt>true</tt> iff the date is a holiday for the given
             market.
@@ -105,6 +108,12 @@ namespace QuantLib {
             weekend for the given market.
         */
         bool isWeekend(Weekday w) const;
+        /*! Returns <tt>true</tt> iff in the given market, the date is on
+            or before the first business day for that month.
+        */
+        bool isStartOfMonth(const Date& d) const;
+        //! first business day of the month to which the given date belongs
+        Date startOfMonth(const Date& d) const;
         /*! Returns <tt>true</tt> iff in the given market, the date is on
             or after the last business day for that month.
         */
@@ -237,8 +246,16 @@ namespace QuantLib {
         return impl_->isBusinessDay(_d);
     }
 
+    inline bool Calendar::isStartOfMonth(const Date& d) const {
+        return d <= startOfMonth(d);
+    }
+
+    inline Date Calendar::startOfMonth(const Date& d) const {
+        return adjust(Date::startOfMonth(d), Following);
+    }
+
     inline bool Calendar::isEndOfMonth(const Date& d) const {
-        return (d.month() != adjust(d+1).month());
+        return d >= endOfMonth(d);
     }
 
     inline Date Calendar::endOfMonth(const Date& d) const {

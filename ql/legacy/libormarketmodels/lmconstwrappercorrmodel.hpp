@@ -38,13 +38,13 @@ namespace QuantLib {
 
         Size factors() const override { return corrModel_->factors(); }
 
-        Disposable<Matrix> correlation(Time t, const Array& x = Null<Array>()) const override {
+        Matrix correlation(Time t, const Array& x = {}) const override {
             return corrModel_->correlation(t, x);
         }
-        Disposable<Matrix> pseudoSqrt(Time t, const Array& x = Null<Array>()) const override {
+        Matrix pseudoSqrt(Time t, const Array& x = {}) const override {
             return corrModel_->pseudoSqrt(t, x);
         }
-        Real correlation(Size i, Size j, Time t, const Array& x = Null<Array>()) const override {
+        Real correlation(Size i, Size j, Time t, const Array& x = {}) const override {
             return corrModel_->correlation(i, j, t, x);
         }
         bool isTimeIndependent() const override { return corrModel_->isTimeIndependent(); }

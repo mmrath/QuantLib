@@ -25,7 +25,6 @@
 #include <ql/cashflows/iborcoupon.hpp>
 #include <ql/cashflows/couponpricer.hpp>
 #include <ql/cashflows/simplecashflow.hpp>
-#include <ql/time/daycounters/actualactual.hpp>
 
 using namespace std;
 
@@ -46,7 +45,7 @@ namespace QuantLib {
         arguments->notionalRisk = notionalRisk_;
         arguments->startDate = issueDate();
     }
-    
+
     void CatBond::fetchResults(const PricingEngine::results* r) const {
         Bond::fetchResults(r);
 
@@ -60,7 +59,7 @@ namespace QuantLib {
 
     FloatingCatBond::FloatingCatBond(Natural settlementDays,
                                      Real faceAmount,
-                                     const Schedule& schedule,
+                                     Schedule schedule,
                                      const ext::shared_ptr<IborIndex>& iborIndex,
                                      const DayCounter& paymentDayCounter,
                                      const ext::shared_ptr<NotionalRisk>& notionalRisk,
@@ -77,7 +76,7 @@ namespace QuantLib {
 
         maturityDate_ = schedule.endDate();
 
-        cashflows_ = IborLeg(schedule, iborIndex)
+        cashflows_ = IborLeg(std::move(schedule), iborIndex)
             .withNotionals(faceAmount)
             .withPaymentDayCounter(paymentDayCounter)
             .withPaymentAdjustment(paymentConvention)

@@ -27,6 +27,21 @@
 
 namespace QuantLib {
 
+    namespace {
+
+        // Requires: from < to.
+        Date::serial_type daysBetweenImpl(const Calendar& cal,
+                                          const Date& from, const Date& to,
+                                          bool includeFirst, bool includeLast) {
+            auto res = static_cast<Date::serial_type>(includeLast && cal.isBusinessDay(to));
+            for (Date d = includeFirst ? from : from + 1; d < to; ++d) {
+                res += static_cast<Date::serial_type>(cal.isBusinessDay(d));
+            }
+            return res;
+        }
+
+    }
+
     void Calendar::addHoliday(const Date& d) {
         QL_REQUIRE(impl_, "no calendar implementation provided");
 
@@ -59,6 +74,11 @@ namespace QuantLib {
         // Otherwise, add it.
         if (!impl_->isBusinessDay(_d))
             impl_->removedHolidays.insert(_d);
+    }
+
+    void Calendar::resetAddedAndRemovedHolidays() {
+        impl_->addedHolidays.clear();
+        impl_->removedHolidays.clear();
     }
 
     Date Calendar::adjust(const Date& d,
@@ -139,9 +159,15 @@ namespace QuantLib {
             Date d1 = d + n*unit;
 
             // we are sure the unit is Months or Years
-            if (endOfMonth && isEndOfMonth(d))
-                return Calendar::endOfMonth(d1);
-
+            if (endOfMonth){
+                if (c == Unadjusted && Date::isEndOfMonth(d)){
+                    // move to end of calendar day if using Unadjusted convention and d is last calendar day
+                    return Date::endOfMonth(d1);
+                } else if (isEndOfMonth(d)) {
+                    // move to end of business day if d is last bussiness day
+                    return Calendar::endOfMonth(d1);
+                }
+            }
             return adjust(d1, c);
         }
     }
@@ -157,38 +183,9 @@ namespace QuantLib {
                                                     const Date& to,
                                                     bool includeFirst,
                                                     bool includeLast) const {
-        Date::serial_type wd = 0;
-        if (from != to) {
-            if (from < to) {
-                // the last one is treated separately to avoid
-                // incrementing Date::maxDate()
-                for (Date d = from; d < to; ++d) {
-                    if (isBusinessDay(d))
-                        ++wd;
-                }
-                if (isBusinessDay(to))
-                    ++wd;
-            } else if (from > to) {
-                for (Date d = to; d < from; ++d) {
-                    if (isBusinessDay(d))
-                        ++wd;
-                }
-                if (isBusinessDay(from))
-                    ++wd;
-            }
-
-            if (isBusinessDay(from) && !includeFirst)
-                --wd;
-            if (isBusinessDay(to) && !includeLast)
-                --wd;
-
-            if (from > to)
-                wd = -wd;
-        } else if (includeFirst && includeLast && isBusinessDay(from)) {
-            wd = 1;
-        }
-
-        return wd;
+        return (from < to) ? daysBetweenImpl(*this, from, to, includeFirst, includeLast) :
+               (from > to) ? -daysBetweenImpl(*this, to, from, includeLast, includeFirst) :
+               Date::serial_type(includeFirst && includeLast && isBusinessDay(from));
     }
 
 
@@ -200,7 +197,7 @@ namespace QuantLib {
     }
 
     Day Calendar::WesternImpl::easterMonday(Year y) {
-        static const Day EasterMonday[] = {
+        static const unsigned char EasterMonday[] = {
                   98,  90, 103,  95, 114, 106,  91, 111, 102,   // 1901-1909
              87, 107,  99,  83, 103,  95, 115,  99,  91, 111,   // 1910-1919
              96,  87, 107,  92, 112, 103,  95, 108, 100,  91,   // 1920-1929
@@ -242,7 +239,7 @@ namespace QuantLib {
     }
 
     Day Calendar::OrthodoxImpl::easterMonday(Year y) {
-        static const Day EasterMonday[] = {
+        static const unsigned char EasterMonday[] = {
                  105, 118, 110, 102, 121, 106, 126, 118, 102,   // 1901-1909
             122, 114,  99, 118, 110,  95, 115, 106, 126, 111,   // 1910-1919
             103, 122, 107,  99, 119, 110, 123, 115, 107, 126,   // 1920-1929

@@ -57,9 +57,9 @@ namespace QuantLib {
                                                         maxSamples_);
             results_.value = this->mcModel_->sampleAccumulator().mean();
 
-            if (RNG::allowsErrorEstimate)
-            results_.errorEstimate =
-                this->mcModel_->sampleAccumulator().errorEstimate();
+            if constexpr (RNG::allowsErrorEstimate)
+                results_.errorEstimate =
+                    this->mcModel_->sampleAccumulator().errorEstimate();
         }
 
       private:
@@ -105,10 +105,10 @@ namespace QuantLib {
         operator ext::shared_ptr<PricingEngine>() const;
       private:
         ext::shared_ptr<StochasticProcessArray> process_;
-        bool brownianBridge_, antithetic_;
+        bool brownianBridge_ = false, antithetic_ = false;
         Size samples_, maxSamples_;
         Real tolerance_;
-        BigNatural seed_;
+        BigNatural seed_ = 0;
     };
 
 
@@ -176,8 +176,8 @@ namespace QuantLib {
     template <class RNG, class S>
     inline MakeMCHimalayaEngine<RNG, S>::MakeMCHimalayaEngine(
         ext::shared_ptr<StochasticProcessArray> process)
-    : process_(std::move(process)), brownianBridge_(false), antithetic_(false),
-      samples_(Null<Size>()), maxSamples_(Null<Size>()), tolerance_(Null<Real>()), seed_(0) {}
+    : process_(std::move(process)), samples_(Null<Size>()), maxSamples_(Null<Size>()),
+      tolerance_(Null<Real>()) {}
 
     template <class RNG, class S>
     inline MakeMCHimalayaEngine<RNG,S>&
